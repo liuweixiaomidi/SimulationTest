@@ -29,7 +29,9 @@ def set_target_list(start: int, end: int, single=None, title: str = "AP"):
         single = []
     for i in range(start, end + 1):
         result.append(title + str(i))
-    if len(single):
+    if type(single) == str:
+        result.append(single)
+    elif len(single):
         for i in single:
             result.append(i)
     return result

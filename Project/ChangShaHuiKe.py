@@ -57,3 +57,15 @@ def test_4():
     time.sleep(2)
     core.goto_order("AP19", "34002")
     core.goto_order("LM77", "34003")
+
+
+def test_5():
+    """
+    只有一个机器人进算法时仍要原地等待
+    :return: None
+    """
+    core.move_robot("34003", "AP38")
+    core.move_robot("34002", "AP30")
+    time.sleep(2)
+    core.goto_order("AP31", "34003")
+    core.goto_order("LM77", "34002")
