@@ -13,11 +13,12 @@ def get_random_str():
     return str(uuid.uuid1())
 
 
-def set_target_list(start: int, end: int, single=None, title: str = "AP"):
+def set_target_list(start: int, end: int, single=None, title: str = "AP", fill: bool = None):
     """
     用于生成库位或工作站集合
     例: set_target_list(1, 3, ["LM5", "LM7"], "AP")
     返回 ["AP1", "AP2", "AP3", "LM5", "LM7"]
+    :param fill:  是否要对 10 以下的库位自动补0 缺省为否
     :param title: 站点名前缀 缺省为 “AP”
     :param start: 连续点位的起始 包含该值
     :param end:   连续点位的结束值 包含该值
@@ -25,10 +26,15 @@ def set_target_list(start: int, end: int, single=None, title: str = "AP"):
     :return: list[str]
     """
     result = []
+    if fill is None:
+        fill = False
     if single is None:
         single = []
     for i in range(start, end + 1):
-        result.append(title + str(i))
+        if fill and 0 < i < 10:
+            result.append(title + "0" + str(i))
+        else:
+            result.append(title + str(i))
     if type(single) == str:
         result.append(single)
     elif len(single):
@@ -230,7 +236,7 @@ def move_robot(agv: str, position: str, angle: float = None, ip: str = None):
 def goto_order(location, vehicle: str = None, order_id: str = None, group: str = None, label: str = None,
                complete: bool = None, ip: str = None):
     """
-    发送去一个目标点的订单
+    发送订单
     :param ip: 服务器 ip，缺省则采用 Lib.config.py 里的 ip
     :param order_id: 订单 id，缺省则随机生成
     :param location: 目标点: 可以为单个目标点 str; 也可以是有顺序的多个目标点 list[str]
