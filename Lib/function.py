@@ -353,3 +353,36 @@ def set_robot_error(robot: str, error: str, ip: str = None):
         "error": error
     }
     requests.post('http://' + ip + ':8088/updateSimRobotState', json.dumps(data))
+
+
+def load_unload_order(location: [str, str], vehicle: str = None, order_id: str = None, group: str = None,
+                      label: str = None, complete: bool = None, ip: str = None):
+    """
+    发送订单
+    :param ip: 服务器 ip，缺省则采用 Lib.config.py 里的 ip
+    :param order_id: 订单 id，缺省则随机生成
+    :param location: 目标点: 输入两个目标点，第一个执行 load; 第二个执行 unload
+    :param vehicle: 机器人，缺省则随机分配
+    :param group: 机器人组，缺省为空
+    :param label: 标签，缺省为空
+    :param complete: 是否封口，缺省则封口
+    :return: 无
+    """
+    data = {}
+    if ip is None:
+        ip = config.ip
+    if order_id is None:
+        order_id = get_random_str()
+    if complete is None:
+        complete = True
+    blocks = [get_block_data(location[0], operation="ForkLoad"), get_block_data(location[1], operation="ForkUnload")]
+    data = {
+        "id": order_id,
+        "blocks": blocks,
+        "vehicle": ("" if vehicle is None else vehicle),
+        "group": ("" if group is None else group),
+        "label": ("" if label is None else label),
+        "complete": complete
+    }
+    print(data)
+    requests.post('http://' + ip + ':8088/setOrder', json.dumps(data))

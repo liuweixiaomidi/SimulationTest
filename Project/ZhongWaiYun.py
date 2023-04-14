@@ -9,7 +9,7 @@ def zwy():
     # AP4
     while len(load_target):
         cur_load = random.choice(load_target)
-        core.goto_order([cur_load, "AP4"])
+        core.load_unload_order([cur_load, "AP4"])
         load_target.remove(cur_load)
         time.sleep(5)
 
