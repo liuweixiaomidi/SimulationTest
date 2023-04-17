@@ -67,3 +67,16 @@ def test_4():
     core.goto_order("AP944", "AMB-01")
     core.goto_order("LM719", "AMB-02")
 
+
+def test_5():
+    """
+    mutexExpand 测试用例
+    地图 zwy_0414
+    :return: None
+    """
+    core.move_robot("Fork-21", "AP43")
+    core.move_robot("Fork-19", "PP455")
+    time.sleep(2)
+    core.goto_order("AP44", "Fork-19")
+    time.sleep(30)
+    core.goto_order("AP4", "Fork-21")
