@@ -80,3 +80,51 @@ def test_5():
     core.goto_order("AP44", "Fork-19")
     time.sleep(30)
     core.goto_order("AP4", "Fork-21")
+
+
+def replan():
+    core.move_robot('AMB-01', 'AP1')
+    core.move_robot('sim_01', 'AP2')
+    time.sleep(2)
+    core.goto_order('AP4', 'AMB-01')
+    core.goto_order('AP3', 'sim_01')
+    time.sleep(4)
+    core.set_robot_error('sim_01', ['40', '41'])
+
+
+if __name__ == '__main__':
+    replan()
+    # key = input('输入一个数字: ')
+    # match key:
+    #     case 1:
+    #         pass
+    #     case 2:
+    #         pass
+    #     case _:
+    #         pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

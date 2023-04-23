@@ -10,6 +10,7 @@ import Project.ZhuHaiFeiLiPu as zf
 import Project.Debug as debug
 import Project.JiNanFesto as jn
 import Project.QingDaoHaiXin as qd
+import Project.DingWanXing as ding
 
 
 def general_demo():
@@ -128,4 +129,4 @@ def festo():
 
 
 if __name__ == '__main__':
-    cs.test_5()
+    ding.zhong_wai_yun()

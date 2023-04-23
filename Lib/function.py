@@ -338,7 +338,7 @@ def set_robot_blocked(robot: str, ip: str = None):
     requests.post('http://' + ip + ':8088/updateSimRobotState', json.dumps(data))
 
 
-def set_robot_error(robot: str, error: str, ip: str = None):
+def set_robot_error(robot: str, error: any, ip: str = None):
     """
     将机器人设置为阻挡状态
     :param error: 报错信息
@@ -350,7 +350,7 @@ def set_robot_error(robot: str, error: str, ip: str = None):
         ip = config.ip
     data = {
         "vehicle_id": robot,
-        "error": error
+        "error": str(error).replace('\'', '\"')
     }
     requests.post('http://' + ip + ':8088/updateSimRobotState', json.dumps(data))
 
