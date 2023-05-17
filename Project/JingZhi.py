@@ -44,5 +44,21 @@ def run():
             time.sleep(30)
 
 
+def recurrent_0515_1():
+    core.move_robot('sim_04', 'LM17')
+    core.move_robot('sim_03', 'LM152')
+    time.sleep(2)
+    core.goto_order('AP29', 'sim_03')
+    core.goto_order('AP42', 'sim_04')
+
+
+def recurrent_0515_2():
+    core.move_robot('sim_01', 'LM5')
+    core.move_robot('sim_02', 'AP100')
+    time.sleep(2)
+    core.goto_order('AP101', 'sim_01', ip='58.34.177.164')
+    core.goto_order('AP127', 'sim_02', ip='58.34.177.164')
+
+
 if __name__ == '__main__':
-    run()
+    recurrent_0515_2()

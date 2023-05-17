@@ -1,5 +1,6 @@
 import Lib.function as core
 import time
+import math
 
 """
 用于悲惨的日常找bug
@@ -83,31 +84,73 @@ def test_5():
 
 
 def replan():
-    core.move_robot('AMB-01', 'AP1')
     core.move_robot('sim_01', 'AP2')
-    time.sleep(2)
-    core.goto_order('AP4', 'AMB-01')
-    core.goto_order('AP3', 'sim_01')
-    time.sleep(4)
+    time.sleep(1)
+    core.goto_order('AP4', 'sim_01')
+    time.sleep(5)
     core.set_robot_error('sim_01', ['40', '41'])
 
 
+def charge_safe():
+    """
+    当机器人电量低于 chargeSafe 时, 必须从正在充电的车中找出一辆已经充电最多的车交换
+    :return:
+    """
+    core.move_robot("sim_01", "PP46")
+    core.move_robot("sim_02", "PP47")
+    core.move_robot("sim_03", "PP31")
+    time.sleep(1)
+    core.set_robot_battery("sim_01", 40)
+    core.set_robot_battery("sim_02", 30)
+    time.sleep(30)
+    core.set_robot_battery("sim_03", 10)
+
+
+def count():
+    total = 2700
+    for i in range(total):
+        if total < 0:
+            break
+        print(total)
+        total -= 3
+        time.sleep(1)
+
+
+def test_festo():
+    core.move_robot("AMB-01", "LM283")
+    core.move_robot("AMB-02", "LM204")
+    time.sleep(2)
+    core.goto_order("AP677", "AMB-01")
+    core.goto_order("AP619", "AMB-02")
+
+
+def test_fushikang():
+    # dyb: 加入测试用例 mapf避让测试
+    core.move_robot('AMB-02', 'LM53')
+    core.move_robot('AMB-03', 'LM61')
+    time.sleep(2)
+    core.goto_order(location='LM65', vehicle='AMB-02')
+    core.goto_order(location='PP76', vehicle='AMB-03')
+
+
+def test_fushikang2():
+    # dyb: 加入测试用例 mapf避让测试
+    core.move_robot('AMB-05', 'LM439')
+    core.move_robot('AMB-06', 'LM441')
+    time.sleep(2)
+    core.goto_order(location='LM419', vehicle='AMB-06')
+    time.sleep(3)
+    core.goto_order(location='LM414', vehicle='AMB-05')
+
+
+def calculate_two_points_length(x1: float, x2:float, y1: float, y2: float):
+    x = x1 - x2
+    y = y1 - y2
+    return math.hypot(x, y)
+
+
 if __name__ == '__main__':
-    replan()
-    # key = input('输入一个数字: ')
-    # match key:
-    #     case 1:
-    #         pass
-    #     case 2:
-    #         pass
-    #     case _:
-    #         pass
-
-
-
-
-
-
+    count()
 
 
 

@@ -4,6 +4,7 @@ import time
 """
 长沙惠科项目测试代码库
 """
+# dyb: 后续应加入测试用例用来检测 mapf 避让动作是否合理
 
 
 def test_1():
@@ -69,3 +70,29 @@ def test_5():
     time.sleep(2)
     core.goto_order("AP31", "34003")
     core.goto_order("LM77", "34002")
+
+
+def test_6():
+    """
+    一辆车停在工作站、另一辆车去同一目标点
+    :return: None
+    """
+    # TODO(23-04-25): 添加一个区域, 当无法到达相同目标点时, 允许前往此区域
+    core.move_robot('34003', 'LM77')
+    core.move_robot('34002', 'AP34')
+    time.sleep(2)
+    core.goto_order('LM77', '34002')
+    # core.goto_order('LM77', '34003', complete=False)
+
+
+# dyb: 可加入 mapf 级别测试用例
+def test_7():
+    """
+    已下发路线的旋转检测
+    :return:
+    """
+    core.move_robot('34001', 'LM283')
+    core.move_robot('34003', 'LM111')
+    time.sleep(2)
+    core.goto_order('AP36', '34001')
+    core.goto_order('AP37', '34003')

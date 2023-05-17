@@ -368,7 +368,6 @@ def load_unload_order(location: [str, str], vehicle: str = None, order_id: str =
     :param complete: 是否封口，缺省则封口
     :return: 无
     """
-    data = {}
     if ip is None:
         ip = config.ip
     if order_id is None:
@@ -386,3 +385,51 @@ def load_unload_order(location: [str, str], vehicle: str = None, order_id: str =
     }
     print(data)
     requests.post('http://' + ip + ':8088/setOrder', json.dumps(data))
+
+
+def set_robot_battery(robot: str, percentage: float, ip: str = None):
+    """
+    设置机器人电量
+    :param ip: 服务器 ip，缺省则采用 Lib.config.py 里的 ip
+    :param robot: 机器人名称
+    :param percentage: 设置电量
+    :return:
+    """
+    if ip is None:
+        ip = config.ip
+    requests.post("http://" + ip + ":8088/updateSimRobotState", json.dumps({
+        "vehicle_id": robot,
+        "battery_percentage": 0.01 * percentage,
+    }))
+
+
+def set_special_bin(title1: str = None, start1: int = None, end1: int = None, fill1: bool = False,
+                    title2: list[str] = None, start2: int = None, end2: int = None, fill2: bool = False,
+                    title3: str = None, start3: int = None, end3: int = None, fill3: bool = False):
+    """
+    用于生成含有三段字符与连续数字的库位名称
+    如 50-03-18A-01-1 其中 18A 01 1 是连续的数字
+    :param title1: 第一段字符串, 上述示例为 50-03-
+    :param start1: 第一段连续数字起始值, 上述示例为 1
+    :param end1: 第一段连续数字终止值, 上述示例为 18
+    :param fill1: 是否对第一段连续数字中小于 10 的值自动补零, 默认为否
+    :param title2: 第二段连续字符串, 上述示例为 ['A-', 'B-']
+    :param start2: 第二段连续数字起始值, 上述示例为 1
+    :param end2: 第二段连续数字终止值, 上述示例为 4
+    :param fill2: 是否对第二段连续数字中小于 10 的值自动补零, 默认为否
+    :param title3: 第三段字符串, 上述示例为 -
+    :param start3: 第三段连续数字起始值, 上述示例为 1
+    :param end3: 第三段连续数字终止值, 上述示例为 4
+    :param fill3: 是否对第三段连续数字中小于 10 的值自动补零, 默认为否
+    :return: list[str]
+    """
+    result = []
+    for i in range(start1, end1 + 1):
+        for j in range(start2, end2 + 1):
+            for k in range(start3, end3 + 1):
+                for m in title2:
+                    cur_i = str(0) + str(i) if fill1 and i < 10 else str(i)
+                    cur_j = str(0) + str(j) if fill2 and j < 10 else str(j)
+                    cur_k = str(0) + str(k) if fill3 and k < 10 else str(k)
+                    result.append(title1 + cur_i + m + cur_j + title3 + cur_k)
+    return result
