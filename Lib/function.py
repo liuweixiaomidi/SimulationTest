@@ -1,7 +1,9 @@
 import json
+import time
 import uuid
 import requests
 
+import Lib.config
 import Lib.config as config
 
 
@@ -433,3 +435,25 @@ def set_special_bin(title1: str = None, start1: int = None, end1: int = None, fi
                     cur_k = str(0) + str(k) if fill3 and k < 10 else str(k)
                     result.append(title1 + cur_i + m + cur_j + title3 + cur_k)
     return result
+
+
+def get_current_location(robot: str, ip: str = None):
+    """
+    获取机器人当前所在站点
+    :param robot: 机器人名称
+    :param ip: 服务器 ip, 缺省则采用 Lib.config 中的 ip
+    :return: str
+    """
+    result = None
+    has_result = False
+    if ip is None:
+        ip = Lib.config.ip
+    status = requests.get('http://' + ip + ':8088/robotsStatus').json()
+    for r in status['report']:
+        if r['vehicle_id'] == robot:
+            data = r['rbk_report']
+            result = data['current_station']
+            has_result = True
+            break
+    if has_result:
+        return result

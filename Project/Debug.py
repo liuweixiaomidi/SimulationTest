@@ -107,12 +107,12 @@ def charge_safe():
 
 
 def count():
-    total = 2700
+    total = 20000
     for i in range(total):
         if total < 0:
             break
         print(total)
-        total -= 3
+        total -= 9.5
         time.sleep(1)
 
 
@@ -149,9 +149,25 @@ def calculate_two_points_length(x1: float, x2:float, y1: float, y2: float):
     return math.hypot(x, y)
 
 
-if __name__ == '__main__':
-    count()
+def swap_location():
+    """
+    互换位置, 选择路线是否为最佳
+    :return:
+    """
+    # dyb: 加入测试用例 mapf测试
+    a = 'PBG 300JZ'
+    b = 'PBG 800K'
+    core.move_robot(a, 'AP18')
+    core.move_robot(b, 'AP15')
+    time.sleep(2)
+    core.goto_order('AP15', a)
+    time.sleep(3)
+    core.goto_order('AP18', b)
 
+
+if __name__ == '__main__':
+    # count()
+    swap_location()
 
 
 
