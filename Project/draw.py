@@ -8,7 +8,7 @@ def tanh(i, m: int):
         case 0:
             w = (np.exp(-i) - np.exp(i)) / (np.exp(-i) + np.exp(i)) + 2   # 双曲正切函数
         case 1:
-            w = (50 * np.exp(-0.3 * i) + 1) * 2.5     # 指数函数
+            w = (50 * np.exp(-0.3 * i) + 1)     # 指数函数
         case _:
             return
     return w

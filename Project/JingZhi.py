@@ -60,5 +60,30 @@ def recurrent_0515_2():
     core.goto_order('AP127', 'sim_02', ip='58.34.177.164')
 
 
+def update_real_time():
+    to_loc_list = core.set_target_list(3184, 3193, title='AP')
+    to_loc_list.remove('AP3186')
+    to_loc_list.remove('AP3187')
+    while len(to_loc_list):
+        cur_loc = random.choice(to_loc_list)
+        to_loc_list.remove(to_loc_list)
+    time.sleep(5)
+    core.move_robot()
+
+
+def pp_same_time_out():
+    ap_loc = core.set_target_list(713, 725)  # 13
+    ap_loc += core.set_target_list(2498, 2515)  # 18
+    ap_loc += core.set_target_list(2518, 2539)  # 22
+    ap_loc += core.set_target_list(2542, 2563)  # 22
+    print(len(ap_loc))
+    n = 0
+    for i in ap_loc:
+        core.goto_order(i)
+        n += 1
+    print(n)
+
+
 if __name__ == '__main__':
-    recurrent_0515_2()
+    # recurrent_0515_2()
+    pp_same_time_out()

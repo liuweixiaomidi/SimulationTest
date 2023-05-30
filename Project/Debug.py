@@ -1,3 +1,5 @@
+import random
+
 import Lib.function as core
 import time
 import math
@@ -107,12 +109,13 @@ def charge_safe():
 
 
 def count():
-    total = 20000
+    total = 3000
     for i in range(total):
         if total < 0:
             break
         print(total)
-        total -= 9.5
+        random_num = random.choice([i/2 for i in range(1, 10)])
+        total -= random_num
         time.sleep(1)
 
 
@@ -125,7 +128,7 @@ def test_festo():
 
 
 def test_fushikang():
-    # dyb: 加入测试用例 mapf避让测试
+    # 已加入 mapf 级别避让测试
     core.move_robot('AMB-02', 'LM53')
     core.move_robot('AMB-03', 'LM61')
     time.sleep(2)
@@ -134,7 +137,7 @@ def test_fushikang():
 
 
 def test_fushikang2():
-    # dyb: 加入测试用例 mapf避让测试
+    # 此情形无法复现且表现合理, 可不考虑
     core.move_robot('AMB-05', 'LM439')
     core.move_robot('AMB-06', 'LM441')
     time.sleep(2)
@@ -143,7 +146,7 @@ def test_fushikang2():
     core.goto_order(location='LM414', vehicle='AMB-05')
 
 
-def calculate_two_points_length(x1: float, x2:float, y1: float, y2: float):
+def calculate_two_points_length(x1: float, x2: float, y1: float, y2: float):
     x = x1 - x2
     y = y1 - y2
     return math.hypot(x, y)
@@ -165,25 +168,33 @@ def swap_location():
     core.goto_order('AP18', b)
 
 
+# dyb: 相邻目标点进出的 mapf 避让合理性测试
+
+
+def test_f():
+
+    core.goto_order(location='AP6', vehicle='rbk1')
+    core.goto_order(location='AP3', vehicle='rbk0')
+
+
+def test_queue():
+    # core.move_robot('RIL-L-006', 'AP895')
+    core.move_robot('RIL-L-006', 'LM2129')
+    core.move_robot('RIL-L-008', 'LM2132')
+    core.move_robot('RIL-L-009', 'LM2117')
+    time.sleep(2)
+    core.goto_order('AP934', 'RIL-L-009')
+    # while True:
+    #     loc = core.get_current_location('RIL-L-009')
+    #     if loc == 'LM2123':
+    #         core.move_robot('RIL-L-006', 'LM2129')
+    #         break
+    #     time.sleep(1)
+    # 长时间未充上电 终止订单 重新生成 同一个 CP 点累计 n 次失败后 暂时禁用此点位 不是很合理太复杂
+    # -------------------------- 如果有其他可用的充电点 优先去其他充电点
+
+
 if __name__ == '__main__':
-    # count()
-    swap_location()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    count()
+    # swap_location()
+    # test_queue()
