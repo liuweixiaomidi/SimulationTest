@@ -109,12 +109,12 @@ def charge_safe():
 
 
 def count():
-    total = 3000
+    total = 4200
     for i in range(total):
         if total < 0:
             break
         print(total)
-        random_num = random.choice([i/2 for i in range(1, 10)])
+        random_num = random.choice([i/5 for i in range(1, 10)])
         total -= random_num
         time.sleep(1)
 
