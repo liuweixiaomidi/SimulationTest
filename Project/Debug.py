@@ -109,12 +109,12 @@ def charge_safe():
 
 
 def count():
-    total = 4200
+    total = 1200
     for i in range(total):
         if total < 0:
             break
         print(total)
-        random_num = random.choice([i/5 for i in range(1, 10)])
+        random_num = random.choice([i/3 for i in range(1, 10)])
         total -= random_num
         time.sleep(1)
 
@@ -195,6 +195,7 @@ def test_queue():
 
 
 if __name__ == '__main__':
-    count()
+    # count()
     # swap_location()
     # test_queue()
+    test_2()
