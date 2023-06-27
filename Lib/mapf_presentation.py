@@ -68,11 +68,11 @@ def transport():
     to_locs = core.set_target_list(24, 37)
     to_locs.append('AP46')
     for _bin in direct_locs:
-        core.goto_order(_bin, label='transport-right')
+        core.goto_order(_bin, label='transport')
     while len(from_locs) and len(to_locs):
         _from_bin = random.choice(from_locs)
         _to_bin = random.choice(to_locs)
-        core.load_unload_order([_from_bin, _to_bin], label='transport-left')
+        core.load_unload_order([_from_bin, _to_bin], label='transport')
         from_locs.remove(_from_bin)
         to_locs.remove(_to_bin)
 

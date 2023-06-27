@@ -15,11 +15,12 @@ def get_random_str():
     return str(uuid.uuid1())
 
 
-def set_target_list(start: int, end: int, single=None, title: str = "AP", fill: bool = None):
+def set_target_list(start: int, end: int, single=None, title: str = "AP", fill: bool = None, remove=None):
     """
     用于生成库位或工作站集合
     例: set_target_list(1, 3, ["LM5", "LM7"], "AP")
     返回 ["AP1", "AP2", "AP3", "LM5", "LM7"]
+    :param remove: 需要从连续点位中移除的点位 缺省为空
     :param fill:  是否要对 10 以下的库位自动补0 缺省为否
     :param title: 站点名前缀 缺省为 “AP”
     :param start: 连续点位的起始 包含该值
@@ -32,6 +33,8 @@ def set_target_list(start: int, end: int, single=None, title: str = "AP", fill: 
         fill = False
     if single is None:
         single = []
+    if remove is None:
+        remove = []
     for i in range(start, end + 1):
         if fill and 0 < i < 10:
             result.append(title + "0" + str(i))
@@ -42,6 +45,9 @@ def set_target_list(start: int, end: int, single=None, title: str = "AP", fill: 
     elif len(single):
         for i in single:
             result.append(i)
+    for i in remove:
+        if i in result:
+            result.remove(i)
     return result
 
 
@@ -457,3 +463,23 @@ def get_current_location(robot: str, ip: str = None):
             break
     if has_result:
         return result
+
+
+def get_robot_state(robot: str, ip: str = None):
+    """
+    获取机器人状态
+    :param robot: 机器人名称
+    :param ip: 服务器 ip, 缺省则采用 Lib.config 中的 ip
+    :return: str
+    """
+    result = None
+    if ip is None:
+        ip = Lib.config.ip
+    status = requests.get('http://' + ip + ':8088/robotsStatus').json()
+    for r in status['report']:
+        if r['vehicle_id'] == robot:
+            data = r['current_order']
+            if len(data):
+                result = data['state']
+                break
+    return result
