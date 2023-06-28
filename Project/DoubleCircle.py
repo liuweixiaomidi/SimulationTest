@@ -57,9 +57,18 @@ def new_strategy():
     while True:
         finished_robots = get_finished_robots(m_robot)
         for robot in finished_robots:
+            _probability = [0.8, 0.2]
+            _value = ['null', 'in<->out']
+            choice = assign_value(_probability, _value)
             cur_sta = core.get_current_location(robot)
-            target = random.choice([in_points for in_points in inside_points if in_points != cur_sta]) if robot in \
-                inside_robots else random.choice([ou_points for ou_points in outside_points if ou_points != cur_sta])
+            options = {
+                'null': (inside_points if robot in inside_robots else outside_points),
+                'in<->out': (inside_points if robot in outside_points else outside_points)
+            }
+            available_points = options.get(choice)
+            target = random.choice([p for p in available_points if p != cur_sta])
+            # target = random.choice([in_points for in_points in inside_points if in_points != cur_sta]) if robot in \
+            #     inside_robots else random.choice([ou_points for ou_points in outside_points if ou_points != cur_sta])
             # target = random.choice(inside_points) if robot in inside_robots else random.choice(outside_points)
             core.goto_order(target, robot)
             count += 1
