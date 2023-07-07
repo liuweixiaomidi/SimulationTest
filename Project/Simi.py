@@ -20,7 +20,7 @@ a_select += core.set_target_list(801, 840, remove=['AP804', 'AP806', 'AP807', 'A
                                                    'AP820', 'AP821', 'AP825', 'AP827', 'AP828', 'AP832', 'AP834',
                                                    'AP835', 'AP839'])   # A分拣区
 a_select += core.set_target_list(683, 728, remove=['AP697', 'AP702', 'AP703', 'AP705', 'AP710', 'AP711', 'AP714',
-                                                   'AP717', 'AP719'])   # A分拣区
+                                                   'AP717', 'AP719', 'AP727'])   # A分拣区
 
 a_select += core.set_target_list(731, 766, remove=['AP734', 'AP737', 'AP739', 'AP743', 'AP745', 'AP747', 'AP749',
                                                    'AP755', 'AP756', 'AP761', 'AP763', 'AP764'])
@@ -58,5 +58,51 @@ def zmf():
         time.sleep(60)
 
 
+def wcnmd():
+    # 1 2 3 from A包装1 to AP then goto A分拣 A背板
+    # 4 5 6 from A分拣 A背板 to AP then goto A包装1
+    core.dis_point_path(['LM206', 'LM1026', 'LM1021', 'LM'])
+    core.move_robot('sim_01', 'LM1038')
+    core.move_robot('sim_02', 'LM901')
+    # core.move_robot('sim_03', 'LM1053')
+    core.move_robot('sim_04', 'LM213')
+    core.move_robot('sim_05', 'LM1024')
+    core.move_robot('sim_06', 'LM208')
+    # core.move_robot('sim_07', 'LM1019')
+    time.sleep(2)
+    core.load_unload_order(['AP953', 'AP1042'], 'sim_01')
+    core.load_unload_order(['AP309', 'AP1042'], 'sim_02')
+    # core.load_unload_order(['AP917', 'AP1042'], 'sim_03')
+    core.load_unload_order(['AP830', 'AP1042'], 'sim_04')
+    core.load_unload_order(['AP796', 'AP1042'], 'sim_05')
+    core.load_unload_order(['AP22', 'AP1042'], 'sim_06')
+    time.sleep(2)
+    core.goto_order('AP511', 'sim_01')
+    core.goto_order('AP689', 'sim_02')
+    core.goto_order('AP333', 'sim_03')
+    core.goto_order('AP954', 'sim_04')
+    core.goto_order('AP912', 'sim_05')
+    core.goto_order('AP963', 'sim_06')
+    set_goods_shape_while_load_unload()
+
+
+def set_goods_shape_while_load_unload():
+    flag = 0
+    load_condition = [['sim_04', 'AP830'], ['sim_05', 'AP796'], ['sim_06', 'AP22']]
+    while flag < 4:
+        for robot in ['sim_04', 'sim_05', 'sim_06']:
+            cur_location = core.get_current_location(robot)
+            if [robot, cur_location] in load_condition:
+                time.sleep(1)
+                core.set_goods_shape(robot, -1.25, -0.5, 1.25, 0.5, 1.57)
+            if cur_location == 'AP1042':
+                time.sleep(1)
+                core.set_goods_shape(robot, 0, 0, 0, 0)
+                flag += 1
+                time.sleep(0.2)
+        time.sleep(0.5)
+
+
 if __name__ == '__main__':
-    zmf()
+    # zmf()
+    wcnmd()

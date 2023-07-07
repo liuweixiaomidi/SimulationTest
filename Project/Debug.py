@@ -194,8 +194,21 @@ def test_queue():
     # -------------------------- 如果有其他可用的充电点 优先去其他充电点
 
 
+def prepoint_redo():
+    # add new field 'prepointRedo' in order data
+    # if the order mark 'prepointRedo' True, it means agv need to go to prepoint first when it triggers redo logic
+    core.goto_order('AP25', 'sim_01', prepoint_redo=True)
+    time.sleep(2)
+    while True:
+        loc = core.get_current_location('sim_01')
+        if loc == 'AP22':
+            break
+    core.fail_robot_task('sim_01')
+
+
 if __name__ == '__main__':
     # count()
     # swap_location()
     # test_queue()
-    test_2()
+    # test_2()
+    prepoint_redo()
