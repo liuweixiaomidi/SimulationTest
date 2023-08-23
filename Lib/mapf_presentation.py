@@ -11,6 +11,13 @@ import function as core
 
 
 def pre_park():
+    """
+    预停靠功能测试
+    前提: 视野为20的mapf通用参数, AutoPark PrePark 打开, 禁用点位 PP12006 PP12007
+    流程: 每隔 20s 发送三个订单，一共发 9 个订单, 类似下面发单代码
+    预期: 所有订单都完成
+    :return:
+    """
     count = 0
     while count != 5:
         core.goto_order('AP1049', group='PrePark')
@@ -21,6 +28,10 @@ def pre_park():
 
 
 def right():
+    """
+    这个废弃不要了
+    :return:
+    """
     # 车 1 去 Loc-01, 停住不动
     # 车 2 去 Loc-02, 触发 recover, 任务完成后去 Loc-16, 停住不动
     # 车 3 去 Loc-02, 与回来的去 Loc-05 的车 2 触发避让逻辑
@@ -36,17 +47,28 @@ def right():
 
 
 def recover():
+    """
+    关闭自动停靠, 使用视野为 30的 mapf 通用参数, 下面所有用例参数都是这样
+    步骤: 按照下面发单
+    预期: 都完成订单
+    :return:
+    """
     core.goto_order('Loc-01', group='right')
     time.sleep(3)
     core.goto_order('Loc-02', group='right')
 
 
 def transfer():
+
     core.goto_order('Loc-01', vehicle='sim_05')
     core.goto_order('Loc-05', vehicle='sim_06')
 
 
 def curve():
+    """
+    初始化 6 号车到 AP1107, 先发送74行代码订单, 这个订单完成后再发送75行订单 订单都完成就成功
+    :return:
+    """
     # core.goto_order('Loc-15', vehicle='sim_05')
     # core.goto_order('Loc-16', vehicle='sim_06')
     core.goto_order('LM1095')
@@ -54,6 +76,10 @@ def curve():
 
 
 def transport_init_aka_rotate():
+    """
+    所有订单都完成即可
+    :return:
+    """
     init_bins_left = core.set_target_list(1, 15)
     init_bins_right = core.set_target_list(16, 23)
     for _bin in init_bins_left:

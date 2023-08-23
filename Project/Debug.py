@@ -1,4 +1,7 @@
+import json
 import random
+
+import requests
 
 import Lib.function as core
 import time
@@ -109,12 +112,12 @@ def charge_safe():
 
 
 def count():
-    total = 1200
+    total = 600
     for i in range(total):
         if total < 0:
             break
         print(total)
-        random_num = random.choice([i/3 for i in range(1, 10)])
+        random_num = random.choice([i/5 for i in range(1, 10)])
         total -= random_num
         time.sleep(1)
 
@@ -206,9 +209,71 @@ def prepoint_redo():
     core.fail_robot_task('sim_01')
 
 
+def joint_order():
+    data1 = {
+        "id": core.get_random_str(),
+        "fromLoc": "Loc-01",
+        "toLoc": "Loc-02"
+    }
+    data2 = {
+        "id": core.get_random_str(),
+        "fromLoc": "Loc-01",
+        "toLoc": "Loc-06"
+    }
+    data3 = {
+        "id": core.get_random_str(),
+        "fromLoc": "Loc-01",
+        "toLoc": "Loc-03"
+    }
+    data4 = {
+        "id": core.get_random_str(),
+        "fromLoc": "Loc-01",
+        "toLoc": "Loc-05"
+    }
+    data5 = {
+        "id": core.get_random_str(),
+        "fromLoc": "Loc-01",
+        "toLoc": "Loc-04"
+    }
+    for data in [data1, data2, data3, data4, data5]:
+        core.set_order(data)
+        time.sleep(1)
+
+
+def long_path_mapf():
+    # 初始化机器人位置
+    core.move_robot('AGV3', 'LM101')
+    core.move_robot('AGV5', 'LM288')
+    time.sleep(2)
+    # 发送订单
+    core.goto_order('AP218', 'AGV3')
+    core.goto_order('LM223', 'AGV5')
+
+
+def wuxi():
+    # 初始化机器人位置
+    core.move_robot('AGV-01', 'AP21')
+    core.move_robot('AGV-02', 'AP26')
+    time.sleep(5)
+    # 发送订单
+    core.goto_order('AP119', 'AGV-02')
+    time.sleep(25)
+    core.goto_order('AP87', 'AGV-01')
+
+
 if __name__ == '__main__':
     # count()
     # swap_location()
     # test_queue()
     # test_2()
-    prepoint_redo()
+    # prepoint_redo()
+    # joint_order()
+    # long_path_mapf()
+    # wuxi()
+    body = {
+        "type": "getMAPF"
+    }
+    b = requests.post('http://127.0.0.1:8088/setupMAPF', json.dumps(body)).content
+    print(b, type(b))
+
+

@@ -371,7 +371,7 @@ def set_robot_error(robot: str, error: any, ip: str = None):
 def load_unload_order(location: [str, str], vehicle: str = None, order_id: str = None, group: str = None,
                       label: str = None, complete: bool = None, ip: str = None):
     """
-    发送订单
+    发送取放货订单
     :param ip: 服务器 ip，缺省则采用 Lib.config.py 里的 ip
     :param order_id: 订单 id，缺省则随机生成
     :param location: 目标点: 输入两个目标点，第一个执行 load; 第二个执行 unload
