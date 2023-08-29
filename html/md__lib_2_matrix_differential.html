@@ -1,0 +1,106 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=11"/>
+<meta name="generator" content="Doxygen 1.9.7"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Simulation Function: MatrixDifferential</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="jquery.js"></script>
+<script type="text/javascript" src="dynsections.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr id="projectrow">
+  <td id="projectalign">
+   <div id="projectname">Simulation Function
+   </div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+</div>
+<!-- end header part -->
+<!-- 制作者 Doxygen 1.9.7 -->
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+var searchBox = new SearchBox("searchBox", "search/",'.html');
+/* @license-end */
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(function() {
+  initMenu('',true,false,'search.php','搜索');
+  $(document).ready(function() { init_search(); });
+});
+/* @license-end */
+</script>
+<div id="main-nav"></div>
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<div id="MSearchResults">
+<div class="SRPage">
+<div id="SRIndex">
+<div id="SRResults"></div>
+<div class="SRStatus" id="Loading">载入中...</div>
+<div class="SRStatus" id="Searching">搜索中...</div>
+<div class="SRStatus" id="NoMatches">未找到</div>
+</div>
+</div>
+</div>
+</div>
+
+</div><!-- top -->
+<div><div class="header">
+  <div class="headertitle"><div class="title">MatrixDifferential</div></div>
+</div><!--header-->
+<div class="contents">
+<div class="textblock"><p>&lt;script src="https://polyfill.io/v3/polyfill.min.js?features=es6"&gt;&lt;/script&gt; &lt;script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"&gt;&lt;/script&gt;</p>
+<h2><a class="anchor" id="autotoc_md0"></a>
+神经网络中的矩阵计算</h2>
+<p>为了使得推导公式时，做到所写即所码，结合编程时的习惯，重新定义部分已有运算、以及提出新的运算符。</p>
+<p>作者：向英杰 日期：2023年6月1日</p>
+<p>[toc]</p>
+<hr  />
+<h3><a class="anchor" id="autotoc_md2"></a>
+矩阵偏导的定义</h3>
+<blockquote class="doxtable">
+<p>&zwj;1. $A,B$ 是两个矩阵，$\exists\; f(\cdot),\; A = f(B)$。</p><ol type="1">
+<li>$\exists\; n,m\in\mathbb{Z}^+,\; \forall B\in\mathbb{R}^{n\times m},\; \frac{\partial A}{\partial B}\in\mathbb{R}^{n\times m}$。</li>
+<li>$A_{i,j}$ 表示矩阵 $A$ 第 $i$ 行、第 $j$ 列的元素，$ \forall\; i,j,\; (\frac{\partial A}{\partial B})_{ij} = \sum_{a\in A}\frac{\partial a}{\partial B_{ij}}$ </li>
+</ol>
+</blockquote>
+<p>当同时满足上述三个条件时，我们认为 $ \frac{\partial A}{\partial B}$ 是矩阵偏导，有了偏导，剩下想怎么玩都行。:)</p>
+<h3><a class="anchor" id="autotoc_md3"></a>
+特殊符号与运算</h3>
+<blockquote class="doxtable">
+<p>&zwj;1. 粗体的 $\mathbf{e}$ 是单位列向量，$\mathbf{e}^T$ 是单位行向量，维度自适应。</p><ol type="1">
+<li>符号 $\mathcal{I}(A)$ 表示一个元素全为 1 的矩阵，维度与矩阵 $A$ 相同，即 $\mathcal{I}(A) = \mathbf{e}\cdot\mathbf{e}^T $。</li>
+<li>符号 $</li>
+</ol>
+</blockquote>
+</div></div><!-- contents -->
+</div><!-- PageDoc -->
+<!-- start footer part -->
+<hr class="footer"/><address class="footer"><small>
+制作者&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.7
+</small></address>
+</body>
+</html>

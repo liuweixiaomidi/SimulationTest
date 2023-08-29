@@ -238,7 +238,8 @@ def move_robot(agv: str, position: str, angle: float = None, ip: str = None):
         "position_by_name": position,
         "angle": angle
     }
-    requests.post('http://' + ip + ':8088/updateSimRobotState', json.dumps(data))
+    result = requests.post('http://' + ip + ':8088/updateSimRobotState', json.dumps(data))
+    print(result, agv, position)
 
 
 def goto_order(location, vehicle: str = None, order_id: str = None, group: str = None, label: str = None,

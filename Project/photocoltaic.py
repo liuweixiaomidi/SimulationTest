@@ -24,22 +24,27 @@ def init():
             r = 'sim_' + str(i)
         p = 'PP2' + str(i + 796)
         move_robot(r, p)
+        time.sleep(0.1)
     for i in range(19, 22):
         r = 'sim_' + str(i)
         p = 'PP28' + str(i - 2)
         move_robot(r, p)
+        time.sleep(0.1)
     for i in range(22, 34):
         r = 'sim_' + str(i)
         p = 'PP28' + str(i)
         move_robot(r, p)
+        time.sleep(0.1)
     for i in range(34, 37):
         r = 'sim_' + str(i)
         p = 'PP28' + str(i + 2)
         move_robot(r, p)
+        time.sleep(0.1)
     for i in range(37, 49):
         r = 'sim_' + str(i)
         p = 'PP28' + str(i + 3)
         move_robot(r, p)
+        time.sleep(0.1)
 
 
 # data = {
@@ -144,5 +149,5 @@ def run():
 
 
 if __name__ == '__main__':
-    init()
+    # init()
     run()

@@ -1,0 +1,24 @@
+\chapter{Matrix\+Differential}
+\hypertarget{md__lib_2_matrix_differential}{}\label{md__lib_2_matrix_differential}\index{MatrixDifferential@{MatrixDifferential}}
+$<$script src=\"{}https\+://polyfill.\+io/v3/polyfill.\+min.\+js?features=es6\"{}$>$$<$/script$>$ $<$script src=\"{}https\+://cdn.\+jsdelivr.\+net/npm/mathjax@3/es5/tex-\/chtml.\+js\"{}$>$$<$/script$>$\hypertarget{md__lib_2_matrix_differential_autotoc_md0}{}\doxysubsection{\texorpdfstring{神经网络中的矩阵计算}{神经网络中的矩阵计算}}\label{md__lib_2_matrix_differential_autotoc_md0}
+为了使得推导公式时，做到所写即所码，结合编程时的习惯，重新定义部分已有运算、以及提出新的运算符。
+
+作者：向英杰 日期：2023年6月1日
+
+\mbox{[}toc\mbox{]}
+
+\DoxyHorRuler{0}
+\hypertarget{md__lib_2_matrix_differential_autotoc_md2}{}\doxysubsubsection{\texorpdfstring{矩阵偏导的定义}{矩阵偏导的定义}}\label{md__lib_2_matrix_differential_autotoc_md2}
+\begin{quote}
+1. \$A,B\$ 是两个矩阵，\$\textbackslash{}exists\textbackslash{}; f(\textbackslash{}cdot),\textbackslash{}; A = f(\+B)\$。
+\begin{DoxyEnumerate}
+\item \$\textbackslash{}exists\textbackslash{}; n,m\textbackslash{}in\textbackslash{}mathbb\{Z\}\texorpdfstring{$^\wedge$}{\string^}+,\textbackslash{}; \textbackslash{}forall B\textbackslash{}in\textbackslash{}mathbb\{R\}\texorpdfstring{$^\wedge$}{\string^}\{n\textbackslash{}times m\},\textbackslash{}; \textbackslash{}frac\{\textbackslash{}partial A\}\{\textbackslash{}partial B\}\textbackslash{}in\textbackslash{}mathbb\{R\}\texorpdfstring{$^\wedge$}{\string^}\{n\textbackslash{}times m\}\$。
+\item \$\+A\+\_\+\{i,j\}\$ 表示矩阵 \$\+A\$ 第 \$i\$ 行、第 \$j\$ 列的元素，\$ \textbackslash{}forall\textbackslash{}; i,j,\textbackslash{}; (\textbackslash{}frac\{\textbackslash{}partial A\}\{\textbackslash{}partial B\})\+\_\+\{ij\} = \textbackslash{}sum\+\_\+\{a\textbackslash{}in A\}\textbackslash{}frac\{\textbackslash{}partial a\}\{\textbackslash{}partial B\+\_\+\{ij\}\}\$ 
+\end{DoxyEnumerate}\end{quote}
+当同时满足上述三个条件时，我们认为 \$ \textbackslash{}frac\{\textbackslash{}partial A\}\{\textbackslash{}partial B\}\$ 是矩阵偏导，有了偏导，剩下想怎么玩都行。\+:)\hypertarget{md__lib_2_matrix_differential_autotoc_md3}{}\doxysubsubsection{\texorpdfstring{特殊符号与运算}{特殊符号与运算}}\label{md__lib_2_matrix_differential_autotoc_md3}
+\begin{quote}
+1. 粗体的 \$\textbackslash{}mathbf\{e\}\$ 是单位列向量，\$\textbackslash{}mathbf\{e\}\texorpdfstring{$^\wedge$}{\string^}T\$ 是单位行向量，维度自适应。
+\begin{DoxyEnumerate}
+\item 符号 \$\textbackslash{}mathcal\{I\}(A)\$ 表示一个元素全为 1 的矩阵，维度与矩阵 \$\+A\$ 相同，即 \$\textbackslash{}mathcal\{I\}(A) = \textbackslash{}mathbf\{e\}\textbackslash{}cdot\textbackslash{}mathbf\{e\}\texorpdfstring{$^\wedge$}{\string^}T \$。
+\item 符号 \$
+\end{DoxyEnumerate}\end{quote}
