@@ -370,9 +370,10 @@ def set_robot_error(robot: str, error: any, ip: str = None):
 
 
 def load_unload_order(location: [str, str], vehicle: str = None, order_id: str = None, group: str = None,
-                      label: str = None, complete: bool = None, ip: str = None):
+                      label: str = None, complete: bool = None, ip: str = None, cout: str = ""):
     """
     发送取放货订单
+    :param cout: 打印日志格式, simple 为简易打印, 其他为完整订单打印
     :param ip: 服务器 ip，缺省则采用 Lib.config.py 里的 ip
     :param order_id: 订单 id，缺省则随机生成
     :param location: 目标点: 输入两个目标点，第一个执行 load; 第二个执行 unload
@@ -403,7 +404,13 @@ def load_unload_order(location: [str, str], vehicle: str = None, order_id: str =
         "label": ("" if label is None else label),
         "complete": complete
     }
-    print(data)
+    if cout:
+        if label is not None:
+            print(location[0] + " --> " + location[1] + label)
+        else:
+            print(location[0] + " --> " + location[1])
+    else:
+        print(data)
     requests.post('http://' + ip + ':8088/setOrder', json.dumps(data))
 
 

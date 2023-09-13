@@ -149,5 +149,5 @@ def run():
 
 
 if __name__ == '__main__':
-    # init()
-    run()
+    init()
+    # run()
