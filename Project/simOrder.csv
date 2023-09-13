@@ -1,0 +1,7 @@
+pickups,unloads,rhythms,label,pickups,unloads,rhythms,label
+AP1,AP10,5,label-01,AP100,AP110,10,""
+AP2,AP11,"","",AP101,AP111,,label-02
+AP3,AP12,"","",AP102,AP112,,
+AP4,AP13,5,"",AP103,AP113,,
+AP5,AP14,"",label-01,AP104,AP114,,
+AP6,AP15,"","",AP105,AP115,,

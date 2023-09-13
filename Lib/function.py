@@ -406,7 +406,7 @@ def load_unload_order(location: [str, str], vehicle: str = None, order_id: str =
     }
     if cout:
         if label is not None:
-            print(location[0] + " --> " + location[1] + label)
+            print(location[0] + " --> " + location[1] + '  ' + label)
         else:
             print(location[0] + " --> " + location[1])
     else:
