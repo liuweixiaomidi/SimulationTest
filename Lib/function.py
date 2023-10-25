@@ -775,36 +775,69 @@ def set_agv_bound_pp_from_agv2pp_csv(scene_path: str = None):
         scene_path = Lib.config.scene_path
     with open(scene_path, "r+", encoding='utf-8') as scene_file:
         scene = json.load(scene_file)
-    csv_path = os.path.abspath(__file__)
-    csv_path = os.path.dirname(csv_path)
-    csv_path = os.path.join(csv_path, 'agv2pp.csv')
-    agv2pp = {}
-    with open(csv_path, "r") as csv_file:
-        csv_reader = csv.reader(csv_file)
-        next(csv_reader)
-        for row in csv_reader:
-            key, value = row
-            agv2pp[key] = value
-    scene_area = scene['areas']
-    for area in scene_area:
-        points = area['logicalMap']['advancedPoints']
-        for point in points:
-            if point['className'] == 'ParkPoint':
-                pp = point['instanceName']
-                properties = point['property']
-                for _property in properties:
-                    if _property['key'] == 'parkPoint' and len(_property['tag']):
-                        break
-                else:
-                    if agv2pp.get(pp) is None:
-                        print(f"{pp} 点未绑定")
+        csv_path = os.path.abspath(__file__)
+        csv_path = os.path.dirname(csv_path)
+        csv_path = os.path.join(csv_path, 'agv2pp.csv')
+        agv2pp = {}
+        with open(csv_path, "r") as csv_file:
+            csv_reader = csv.reader(csv_file)
+            next(csv_reader)
+            for row in csv_reader:
+                key, value = row
+                agv2pp[key] = value
+        scene_area = scene['areas']
+        for area in scene_area:
+            points = area['logicalMap']['advancedPoints']
+            for point in points:
+                if point['className'] == 'ParkPoint':
+                    pp = point['instanceName']
+                    properties = point['property']
+                    for _property in properties:
+                        if _property['key'] == 'parkPoint' and len(_property['tag']):
+                            break
                     else:
-                        properties.append({
-                            'key': 'parkPoint',
-                            'type': 'bool',
-                            'value': f"{agv2pp[pp]}:1",
-                            'boolValue': True
-                        })
+                        if agv2pp.get(pp) is None:
+                            print(f"{pp} 点未绑定")
+                        else:
+                            properties.append({
+                                'key': 'parkPoint',
+                                'type': 'bool',
+                                'value': f"{agv2pp[pp]}:1",
+                                'boolValue': True
+                            })
+        scene_file.truncate(0)
+        scene_file.seek(0)
+
+
+def set_agv_init_pos_from_agv2pp_csv(scene_path:str = None):
+    """
+    根据同级文件 agv2pp.csv 将机器人初始化位置写入场景中
+    :param scene_path: 需要写入的场景文件夹路径, 缺省采用 Lib.config.scene_path
+    :return: None
+    """
+    if scene_path is None:
+        scene_path = Lib.config.scene_path
+    with open(scene_path, "r+", encoding='utf-8') as scene_file:
+        scene = json.load(scene_file)
+        csv_path = os.path.abspath(__file__)
+        csv_path = os.path.dirname(csv_path)
+        csv_path = os.path.join(csv_path, 'agv2pp.csv')
+        agv2pp = dict()
+        with open(csv_path, "r") as csv_file:
+            csv_reader = csv.reader(csv_file)
+            next(csv_reader)
+            for row in csv_reader:
+                key, value = row
+                agv2pp[key] = value
+        scene_robot_group = scene['robotGroup']
+        for group in scene_robot_group:
+            for robot in group['robot']:
+                if agv2pp.get(robot['id']) is not None:
+                    for _property in robot['property']:
+                        if _property['key'] == 'initialPosition':
+                            _property['stringValue'] = agv2pp[robot['id']]
+        scene_file.truncate(0)
+        scene_file.seek(0)
 
 
 if __name__ == '__main__':
