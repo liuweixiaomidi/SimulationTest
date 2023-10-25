@@ -1,8 +1,3 @@
-import os
-import random
-
-import pandas as pd
-
 from Lib.function import *
 
 # path of csv
@@ -12,25 +7,6 @@ csv_path = os.path.join(path, 'simOrder.csv')
 
 csv_file = pd.read_csv(csv_path)
 num_rows, num_columns = csv_file.shape
-
-
-def check_duplicated(column_data, column_name):
-    a = column_data[column_data.duplicated(keep=False)]
-    if not a.empty:
-        print(a)
-        raise ValueError(column_name, "点位名称重复")
-
-
-def get_column_element(column_data):
-    for index, value in column_data.items():
-        if pd.notna(value):
-            return column_data.loc[index]
-        return None
-
-
-def check_column_name(columns: set):
-    if len(columns) != 1:
-        raise ValueError(columns, "列表名称不统一")
 
 
 def run():
@@ -46,7 +22,8 @@ def run():
     labels_check_ = set()
     # 解析 csv 数据
     for column_name in csv_file.columns:
-        column_data = csv_file[column_name]
+        column_data = csv_file[column_name].dropna()
+        print(type(column_data))
         temp_list = list()
         for data in column_data:
             temp_list.append(data)
@@ -70,8 +47,8 @@ def run():
                 labels_check_.add(column_name[0:5])
                 if column_data.nunique() != 1:
                     raise ValueError(column_name, "同一个流程的节拍不一致")
-                filter_rhythm = csv_file.dropna(subset=column_name)
-                labels_.append(get_column_element(filter_rhythm[column_name]))
+                filter_label = csv_file.dropna(subset=column_name)
+                labels_.append(get_column_element(filter_label[column_name]))
             case _:
                 raise ValueError("数学不存在了")
     check_column_name(pickups_check)
@@ -79,18 +56,19 @@ def run():
     check_column_name(rhythms_check)
     check_column_name(labels_check_)
     # 发单
+    rhythms = [x * 8 for x in rhythms]
     print("Calculate:  " + "column: " + str(num_columns // 4) + ";  pickups: " + str(len(pickups)) + ";  unloads: " +
           str(len(unloads)) + ";  rhythms: " + str(len(rhythms)) + ";  labels: " + str(len(labels_)))
     time_control = list()
     for i in range(0, num_columns // 4):
-        load_unload_order([random.choice(pickups[i]), random.choice(unloads[i])], label=labels_[i], cout='simple')
+        load_unload_order([random.choice(pickups[i]), random.choice(unloads[i])], label=labels_[i], out='simple')
         time_control.append(time.time())
     time_cost = time.time()
-    while time.time() - time_cost < 600:
+    while time.time() - time_cost < 3600 * 4:
         for i in range(0, num_columns // 4):
             if time.time() - time_control[i] > rhythms[i]:
                 load_unload_order([random.choice(pickups[i]), random.choice(unloads[i])],
-                                  label=labels_[i], cout='simple')
+                                  label=labels_[i], out='simple')
                 time_control[i] = time.time()
 
 
