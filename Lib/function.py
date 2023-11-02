@@ -382,6 +382,22 @@ def set_robot_blocked(robot: str, ip: str = None):
     requests.post('http://' + ip + ':8088/updateSimRobotState', json.dumps(data))
 
 
+def cancel_robot_blocked(robot: str, ip: str = None):
+    """
+    取消机器人的阻挡状态
+    :param ip: 服务器 ip，缺省则采用 Lib.config.py 里的 ip
+    :param robot: 机器人名称
+    :return: None
+    """
+    if ip is None:
+        ip = config.ip
+    data = {
+        "vehicle_id": robot,
+        "blocked": False
+    }
+    requests.post('http://' + ip + ':8088/updateSimRobotState', json.dumps(data))
+
+
 def set_robot_error(robot: str, error: any, ip: str = None):
     """
     将机器人设置为阻挡状态
@@ -809,7 +825,7 @@ def set_agv_bound_pp_from_agv2pp_csv(scene_path: str = None):
         scene_file.seek(0)
 
 
-def set_agv_init_pos_from_agv2pp_csv(scene_path:str = None):
+def set_agv_init_pos_from_agv2pp_csv(scene_path: str = None):
     """
     根据同级文件 agv2pp.csv 将机器人初始化位置写入场景中
     :param scene_path: 需要写入的场景文件夹路径, 缺省采用 Lib.config.scene_path
@@ -838,6 +854,95 @@ def set_agv_init_pos_from_agv2pp_csv(scene_path:str = None):
                             _property['stringValue'] = agv2pp[robot['id']]
         scene_file.truncate(0)
         scene_file.seek(0)
+
+
+def get_current_block_state(order_id: str, ip: str = None):
+    """
+    获取当前执行的动作块的状态
+    :param order_id: 订单 id
+    :param ip: 服务器 ip, 缺省采用 Lib.config::ip
+    :return: str
+    """
+    if ip is None:
+        ip = config.ip
+    order_details = requests.get('http://' + ip + ':8088/orderDetails/' + order_id).json()
+    if 'blocks' in order_details:
+        blocks = order_details['blocks']
+        block = blocks[-1]
+        if 'state' in block:
+            return block['state']
+    return ""
+
+
+def get_current_block_location(order_id: str, ip: str = None):
+    """
+    获取当前执行的动作块的目标点
+    :param order_id: 订单 id
+    :param ip: 服务器 ip, 缺省采用 Lib.config::ip
+    :return: str
+    """
+    if ip is None:
+        ip = config.ip
+    order_details = requests.get('http://' + ip + ':8088/orderDetails/' + order_id).json()
+    if 'blocks' in order_details:
+        blocks = order_details['blocks']
+        block = blocks[-1]
+        if 'location' in block:
+            return block['location']
+    return ""
+
+
+def add_block(location: any, order_id: str, complete: bool = None, ip: str = None):
+    """
+    追加动作块
+    :param location: 目标点
+    :param order_id: 订单号
+    :param complete: 是否封口运单, 缺省为否
+    :param ip: 服务器 ip, 缺省采用 Lib.config::ip
+    :return: None
+    """
+    if complete is None:
+        complete = False
+    if ip is None:
+        ip = config.ip
+    data = dict()
+    if type(location) is str:
+        data = {
+            "id": order_id,
+            "blocks": [{
+                "blockId": str(uuid.uuid1()),
+                "location": location,
+                "operation": "Wait",
+
+            }],
+            "complete": complete
+        }
+    elif type(location) is list:
+        blocks = []
+        for loc in location:
+            blocks.append(get_block_data(loc, operation="Wait"))
+        data = {
+            "id": order_id,
+            "blocks": blocks,
+            "complete": complete
+        }
+    requests.post('http://' + ip + ':8088/addBlocks', data=data)
+
+
+def get_robots_pos(ip: str = None):
+    """
+    获取场景中所有机器人位置
+    :param ip: 服务器 ip, 缺省则采用 Lib.config::ip
+    :return: dict
+    """
+    result = dict()
+    if ip is None:
+        ip = Lib.config.ip
+    status = requests.get('http://' + ip + ':8088/robotsStatus').json()
+    for r in status['report']:
+        data = r['rbk_report']
+        result[r['vehicle_id']] = data['current_station']
+    return result
 
 
 if __name__ == '__main__':
