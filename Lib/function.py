@@ -926,7 +926,8 @@ def add_block(location: any, order_id: str, complete: bool = None, ip: str = Non
             "blocks": blocks,
             "complete": complete
         }
-    requests.post('http://' + ip + ':8088/addBlocks', data=data)
+    requests.post('http://' + ip + ':8088/addBlocks', json.dumps(data))
+    print('addBlock: ', location, ' complete:', complete, order_id)
 
 
 def get_robots_pos(ip: str = None):
@@ -945,7 +946,25 @@ def get_robots_pos(ip: str = None):
     return result
 
 
-if __name__ == '__main__':
+def get_current_block_id(order_id: str, ip: str = None):
+    """
+    获取当前执行的动作块的 id
+    :param order_id: 订单 id
+    :param ip: 服务器 ip, 缺省采用 Lib.config::ip
+    :return: str
+    """
+    if ip is None:
+        ip = config.ip
+    order_details = requests.get('http://' + ip + ':8088/orderDetails/' + order_id).json()
+    if 'blocks' in order_details:
+        blocks = order_details['blocks']
+        block = blocks[-1]
+        if 'blockId' in block:
+            return block['blockId']
+    return ""
+
+
+def draw_speed_graph():
     goto_order(location='LM198', speed=0.99)
     time.sleep(0.5)
     speeds = list()
@@ -953,3 +972,10 @@ if __name__ == '__main__':
         speeds.append(get_robot_speed('rbk1'))
         time.sleep(0.5)
     draw_graph(speeds, 0.5, 'time', 'speed', 'agv speed graph')
+
+
+if __name__ == '__main__':
+    oid = str(uuid.uuid1())
+    goto_order('AP1', complete=False, order_id=oid)
+    time.sleep(4)
+    add_block('AP2', complete=True, order_id=oid)
