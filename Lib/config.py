@@ -5,7 +5,8 @@
 """
 设置默认参数值
 ip: 服务器 ip
-rds_scene_path: 调度场景文件夹路径 
+scene_path: 调度场景文件夹路径 
+log_path: 调度日志文件夹路径 
 """
 ip = '127.0.0.1'
 # ip = '58.34.177.164'
@@ -14,6 +15,7 @@ ip = '127.0.0.1'
 # ip = '192.168.8.212'
 scene_path = (r'C:\Users\seer\AppData\Local\RoboshopPro\appInfo\robots\All\b8feeb7e-63d9cdfe-99852c77-56a5ceef'
               r'\DispatchEditor\scene\rds.scene')
+log_path = r'C:\.SeerRobotics\rdscore\diagnosis\log'
 
 """
 csv 表格文件的规范要求:
