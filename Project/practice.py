@@ -1,3 +1,5 @@
+import pandas as pd
+
 from Lib.function import *
 
 # 设置库位
@@ -48,7 +50,7 @@ def run():
                 match cur_loc[:2]:
                     case 'CK':
                         options = [1, 2, 3]
-                        probabilities = [60/100, 3/100, 37/100]
+                        probabilities = [60 / 100, 3 / 100, 37 / 100]
                         choice = random.choices(options, probabilities)[0]
                         if choice == 1:
                             add_block(rg_bins, m_id)

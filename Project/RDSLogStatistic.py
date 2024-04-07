@@ -66,4 +66,4 @@ def rds_log_time_analyze(log_path: str = None):
 
 
 if __name__ == '__main__':
-    rds_log_time_analyze(r'E:\SEER\Code\Python\SimulationTest-pure\RDSCoreLog')
+    rds_log_time_analyze(r'F:\SEER\Code\Python\SimulationTest-pure\RDSCoreLog')

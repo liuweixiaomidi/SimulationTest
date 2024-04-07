@@ -16,6 +16,7 @@ import urllib.parse
 import Lib.config
 import numpy as np
 import pandas as pd
+import networkx as nx
 import Lib.config as config
 import matplotlib.pyplot as plt
 
@@ -417,6 +418,23 @@ def set_robot_error(robot: str, error: any, ip: str = None):
     requests.post('http://' + ip + ':8088/updateSimRobotState', json.dumps(data))
 
 
+def set_robot_emergency(robot: str, emergency: bool = True, ip: str = None):
+    """
+    将机器人设置为阻挡状态
+    :param emergency: 是否急停, 缺省为是
+    :param ip: 服务器 ip，缺省则采用 Lib.config.py 里的 ip
+    :param robot: 机器人名称
+    :return: None
+    """
+    if ip is None:
+        ip = config.ip
+    data = {
+        "vehicle_id": robot,
+        "emergency": emergency
+    }
+    requests.post('http://' + ip + ':8088/updateSimRobotState', json.dumps(data))
+
+
 def load_unload_order(location: [str, str], vehicle: str = None, order_id: str = None, group: str = None,
                       label: str = None, complete: bool = None, ip: str = None, out: str = ""):
     """
@@ -547,6 +565,27 @@ def get_current_location(robot: str, ip: str = None):
         return result
 
 
+def get_remaining_time(robot: str, ip: str = None):
+    """
+    获取机器人当前订单剩余时间
+    :param robot: 机器人名称
+    :param ip: 服务器 ip, 缺省则采用 Lib.config 中的 ip
+    :return: double
+    """
+    result = -1
+    if ip is None:
+        ip = Lib.config.ip
+    status = requests.get('http://' + ip + ':8088/robotsStatus').json()
+    for r in status['report']:
+        if r['vehicle_id'] == robot:
+            data = r['rbk_report']
+            if 'remaining_time' in data:
+                result = data['remaining_time']
+                break
+    print(result)
+    return result
+
+
 def get_robot_state(robot: str, ip: str = None):
     """
     获取机器人状态
@@ -564,6 +603,29 @@ def get_robot_state(robot: str, ip: str = None):
             if len(data):
                 result = data['state']
                 break
+    return result
+
+
+def get_clean_robot_property(robot: str, ip: str = None, p: bool = True):
+    """
+    获取清洁机器人属性
+    :param p: 是否打印输出, 默认打印
+    :param robot: 机器人名称
+    :param ip: 服务器 ip, 缺省则采用 Lib.config.ip
+    :return: dict
+    """
+    result = dict()
+    if ip is None:
+        ip = Lib.config.ip
+    status = requests.get('http://' + ip + ':8088/robotsStatus').json()
+    for r in status['report']:
+        if r['vehicle_id'] == robot:
+            data = r['rbk_report']
+            if len(data):
+                result = data['info']['cleanRobot']
+                break
+    if p:
+        print(result)
     return result
 
 
@@ -876,6 +938,36 @@ def get_current_block_state(order_id: str, ip: str = None):
     return ""
 
 
+def get_order_state(order_id: str, ip: str = None):
+    """
+    获取订单的状态
+    :param order_id: 订单 id
+    :param ip: 服务器 ip, 缺省采用 Lib.config::ip
+    :return: str
+    """
+    if ip is None:
+        ip = config.ip
+    order_details = requests.get('http://' + ip + ':8088/orderDetails/' + order_id).json()
+    if 'state' in order_details:
+        return order_details['state']
+    return ''
+
+
+def get_order_vehicle(order_id: str, ip: str = None):
+    """
+    获取执行订单的机器人名称
+    :param order_id: 订单 id
+    :param ip: 服务器 ip, 缺省采用 Lib.config::ip
+    :return: str
+    """
+    if ip is None:
+        ip = config.ip
+    order_details = requests.get('http://' + ip + ':8088/orderDetails/' + order_id).json()
+    if 'vehicle' in order_details:
+        return order_details['vehicle']
+    return ''
+
+
 def get_current_block_location(order_id: str, ip: str = None):
     """
     获取当前执行的动作块的目标点
@@ -889,6 +981,24 @@ def get_current_block_location(order_id: str, ip: str = None):
     if 'blocks' in order_details:
         blocks = order_details['blocks']
         block = blocks[-1]
+        if 'location' in block:
+            return block['location']
+    return ""
+
+
+def get_last_second_block_location(order_id: str, ip: str = None):
+    """
+    获取倒数第二个动作块的目标点
+    :param order_id: 订单 id
+    :param ip: 服务器 ip, 缺省采用 Lib.config::ip
+    :return: str
+    """
+    if ip is None:
+        ip = config.ip
+    order_details = requests.get('http://' + ip + ':8088/orderDetails/' + order_id).json()
+    if 'blocks' in order_details:
+        blocks = order_details['blocks']
+        block = blocks[-2]
         if 'location' in block:
             return block['location']
     return ""
@@ -945,6 +1055,27 @@ def get_robots_pos(ip: str = None):
     for r in status['report']:
         data = r['rbk_report']
         result[r['vehicle_id']] = data['current_station']
+    return result
+
+
+def get_robots_x_y_pos(name: str, ip: str = None):
+    """
+    获取机器人坐标
+    :param name: 机器人名称
+    :param ip: 服务器 ip, 缺省则采用 Lib.config::ip
+    :return: dict
+    """
+    result = dict()
+    if ip is None:
+        ip = Lib.config.ip
+    status = requests.get('http://' + ip + ':8088/robotsStatus').json()
+    for r in status['report']:
+        if r['vehicle_id'] == name:
+            data = r['rbk_report']
+            if len(data):
+                result['x'] = data['x']
+                result['y'] = data['y']
+                break
     return result
 
 
@@ -1013,7 +1144,7 @@ def rds_log_time_analyze(log_path: str = None):
     """
     if log_path is None:
         log_path = config.log_path
-    csv_path = os.path.join(os.path.dirname(__file__), 'timeCos t.csv')
+    csv_path = os.path.join(os.path.dirname(__file__), 'timeCost.csv')
     search_pattern = os.path.join(log_path, f"*.log")  # 在.log文件中查找
     log_files = glob.glob(search_pattern)
     if not log_files:
@@ -1056,6 +1187,86 @@ def rds_log_time_analyze(log_path: str = None):
         print("No lines containing 'TCost' found in the file")
 
 
+def mark_complete(order_id: str, ip: str = None):
+    """
+    订单封口
+    :param order_id: 订单 id
+    :param ip: 服务器 ip, 缺省采用 config.ip
+    """
+    if ip is None:
+        ip = config.ip
+    m_data = {
+        "id": order_id
+    }
+    requests.post('http://' + ip + ':8088/markComplete', data=json.dumps(m_data))
+
+
+def match():
+    similarities = {
+        "sim_01": [1, 2, 3, 4],
+        "sim_02": [1, 2, 3],
+        "sim_03": [1, 3, 4],
+        "sim_04": [2, 4],
+        "sim_05": [3, 4]
+    }
+    edges = []
+    for key, nodes in similarities.items():
+        for node in nodes:
+            edges.append((key, node))
+    print("生成的边：", edges)
+    # 创建一个二分图
+    graph = nx.Graph()
+    # 添加左边节点集合
+    graph.add_nodes_from(['sim_01', 'sim_02', 'sim_03', 'sim_04', 'sim_05'], bipartite=0)  # 设置bipartite=0表示这些节点属于左边集合
+    # 添加右边节点集合
+    graph.add_nodes_from([1, 2, 3, 4], bipartite=1)  # 设置bipartite=1表示这些节点属于右边集合
+    # 添加边
+    graph.add_edges_from(edges)
+    # 使用匈牙利算法找到最大匹配
+    matching = nx.bipartite.maximum_matching(graph)
+    print("最大匹配结果：", matching)
+
+
+def terminate_order(robot: list[str] = None, order_id: str = None, ip: str = None):
+    """
+    终止订单
+    :param robot: 机器人名称, 缺省为空
+    :param order_id: 订单号, 缺省为空
+    :param ip: 服务器 ip, 缺省则采用 Lib.config::ip
+    :return: None
+    """
+    if ip is None:
+        ip = Lib.config.ip
+    if order_id is None and robot is None:
+        return
+    elif not robot and not order_id:
+        return
+    elif order_id is not None:
+        requests.post('http://' + ip + ':8088/terminate', data=json.dumps({'id': order_id}))
+    else:
+        requests.post('http://' + ip + ':8088/terminate', data=json.dumps({'vehicles': robot}))
+
+
+def get_sweep_order_state(oid: str, ip: str = None):
+    """
+    获取清扫父订单状态
+    :param oid: 订单 id
+    :param ip: 服务器 ip, 缺省则采用 Lib.config::ip
+    :return: str
+    """
+    if ip is None:
+        ip = Lib.config.ip
+    details = requests.get('http://' + ip + ':8088/sweepOrderDetails/' + oid).json()
+    if 'state' in details:
+        return details['state']
+    return ''
+
+
+
 if __name__ == '__main__':
-    # rds_log_time_analyze(r'E:\SEER\Code\Python\SimulationTest-pure\RDSCoreLog')
-    rds_log_time_analyze()
+    # rds_log_time_analyze(r'F:\SEER\Code\Python\SimulationTest-pure\RDSCoreLog')
+    # rds_log_time_analyze()
+    # match()
+    while True:
+        print(get_sweep_order_state('seer-01'))
+        time.sleep(1)
