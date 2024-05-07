@@ -12,7 +12,7 @@ ip = '127.0.0.1'
 # ip = '58.34.177.164'
 # ip = '192.168.8.122'
 # ip = '192.168.141.1'
-# ip = '192.168.8.212'
+# ip = '192.168.9.52'
 scene_path = (r'C:\Users\seer\AppData\Local\RoboshopPro\appInfo\robots\All\b8feeb7e-63d9cdfe-99852c77-56a5ceef'
               r'\DispatchEditor\scene\rds.scene')
 log_path = r'C:\.SeerRobotics\rdscore\diagnosis\log'

@@ -503,9 +503,8 @@ def fail_robot_task(robot: str, ip: str = None):
     :param ip: 服务器 ip，缺省则采用 Lib.config.py 里的 ip
     :return:
     """
-    if ip is None:
-        ip = config
-    requests.post('http://' + ip + ':8088/updateSimRobotState', json.dumps({
+    ip = ip or config.ip
+    requests.post(f"http://{ip}:8088/updateSimRobotState", json.dumps({
         "vehicle_id": robot,
         "fail_current_task": True
     }))
@@ -1262,11 +1261,103 @@ def get_sweep_order_state(oid: str, ip: str = None):
     return ''
 
 
+def set_water_percentage(robot: str, clean: float = None, dirty: float = None, ip: str = None):
+    """
+    设置清洁机器人水量
+    :param robot: 机器人名称
+    :param clean: 净水量, 缺省则不更新
+    :param dirty: 污水量, 缺省则不更新
+    :param ip: 服务器 ip, 缺省则采用 Lib.config::ip
+    :return:
+    """
+    ip = ip or Lib.config.ip
+    if clean is None and dirty is None:
+        return
+    data = {'open_sim_clean_robot': True, 'vehicle_id': robot}
+    if clean is not None:
+        data['clean_water_percentage'] = clean
+    if dirty is not None:
+        data['dirty_water_percentage'] = dirty
+    requests.post(f"http://{ip}:8088/updateSimRobotState", json.dumps(data))
+    print(json.dumps(data, indent=4))
+
+
+def set_robot_speed(robot: str, speed: float, ip: str = None):
+    """
+    设置机器人速度
+    :param robot: 机器人名称
+    :param speed: 机器人速度
+    :param ip: 服务器 ip, 缺省采用 Lib.config::ip
+    :return:
+    """
+    ip = ip or Lib.config.ip
+    data = {'vehicle_id': robot, 'speed': speed}
+    requests.post(f"http://{ip}:8088/updateSimRobotState", json.dumps(data))
+    print(json.dumps(data, indent=4))
+
+
+def rds_mapf_solver_analyze(log_path: str = None):
+    """
+    分析日志中的 solve completely \n
+    只分析最新的.log文件中最多 100 条最近的 TCost 日志 \n
+    控制台打印:
+        1. 分析 TCost 日志数量
+        2. TCost 日志原文
+        3. 每周期耗时
+        4. 平均每周期耗时
+        5. 耗时最长的 5 个周期
+        6. 耗时最短的 5 个周期
+    :param log_path: 日志所在文件夹路径, 默认路径写在 config::log_path
+    :return: csv 耗时降序排序, 在同级文件 mapfSolver.csv 中
+    """
+    if log_path is None:
+        log_path = config.log_path
+    csv_path = os.path.join(os.path.dirname(__file__), 'mapfSolver.csv')
+    search_pattern = os.path.join(log_path, f"*.log")  # 在.log文件中查找
+    log_files = glob.glob(search_pattern)
+    if not log_files:
+        print(f"No log files found in {log_path}")
+        return None
+    latest_log_file_path = max(log_files, key=os.path.getmtime)  # 只分析最新的一个日志
+    # keyword_lines = (lambda file_path, keyword: [
+    #     m_line.strip() for m_line in open(file_path, 'r').readlines() if keyword in m_line
+    # ] if os.path.exists(file_path) else [])(latest_log_file_path, 'TCost')
+    # 找到所有包含 solve completely 的行
+    keyword_lines = [m_line.strip() for m_line in open(latest_log_file_path, 'r').readlines() if 'solve completely' in m_line]
+    # 最多只取最近 10000 条
+    keyword_lines = keyword_lines[-10000:] if len(keyword_lines) > 10000 else keyword_lines
+    if keyword_lines:
+        print(f"Lines containing {len(keyword_lines)} 'solve completely' in the file:")
+        for line in keyword_lines:
+            print(line)
+        open(csv_path, 'w').close()  # 清空表格
+        data_list = []
+        for index, line in enumerate(keyword_lines):
+            elements = (lambda m_line: re.findall(r'\[(.*?)]', m_line))(line)  # 提取[]内的元素
+            solver_info = list(elements[-1].split("|"))
+            solver_info = [float(x) for x in solver_info[2:-1]]
+            print(solver_info)
+            # 代数 | 冲突引导代数 | 收敛代数 | 平均时间 | 总时间 | 任务完成数 | 冲突数 | 代价 | 机器人数 | 线程数
+        #     # dict 转为 DataFrame
+        #     df_data = pd.DataFrame(list(sorted_time_cost.items()),
+        #                            columns=[f'Module-{index + 1}', f'TCost-{index + 1}'])
+        #     data_list.append(df_data)
+        # df = pd.concat(data_list, axis=1)   # 按列追加
+        # time_cost_columns = df.iloc[0, 1::2]
+        # print(time_cost_columns)
+        # time_cost_columns = pd.to_numeric(time_cost_columns, errors='coerce')   # pandas.core.series.Series 转换为数值类型
+        # time_cost_columns = time_cost_columns.dropna()  # 删除有缺失值的行
+        # df.to_csv(csv_path, index=False)    # 写入csv文件
+        # print(f"平均每周期耗时: {time_cost_columns.mean()}")
+        # print(f"最大5个周期的耗时: {time_cost_columns.nlargest(5).values}")
+        # print(f"最小5个周期的耗时: {time_cost_columns.nsmallest(5).values}")
+    else:
+        print("No lines containing 'TCost' found in the file")
+
+
 
 if __name__ == '__main__':
     # rds_log_time_analyze(r'F:\SEER\Code\Python\SimulationTest-pure\RDSCoreLog')
     # rds_log_time_analyze()
     # match()
-    while True:
-        print(get_sweep_order_state('seer-01'))
-        time.sleep(1)
+    rds_mapf_solver_analyze()
