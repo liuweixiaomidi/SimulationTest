@@ -3,7 +3,7 @@ import re
 import glob
 import pandas as pd
 
-config_log_path = r'C:\.SeerRobotics\rdscore\diagnosis\log'
+config_log_path = r'C:\Users\seer\Downloads\RDSCore-Debug-20240510-0717-0747-20240510153421\log'
 
 
 def rds_log_time_analyze(log_path: str = None):
@@ -34,8 +34,8 @@ def rds_log_time_analyze(log_path: str = None):
     # ] if os.path.exists(file_path) else [])(latest_log_file_path, 'TCost')
     # 找到所有包含 TCost 的行
     keyword_lines = [m_line.strip() for m_line in open(latest_log_file_path, 'r').readlines() if 'TCost' in m_line]
-    # 最多只取最近 50 条
-    keyword_lines = keyword_lines[-100:] if len(keyword_lines) > 100 else keyword_lines
+    # 最多只取最近 1000 条
+    keyword_lines = keyword_lines[-1000:] if len(keyword_lines) > 1000 else keyword_lines
     if keyword_lines:
         print(f"Lines containing {len(keyword_lines)} 'TCost' in the file:")
         for line in keyword_lines:
@@ -66,4 +66,4 @@ def rds_log_time_analyze(log_path: str = None):
 
 
 if __name__ == '__main__':
-    rds_log_time_analyze(r'F:\SEER\Code\Python\SimulationTest-pure\RDSCoreLog')
+    rds_log_time_analyze()

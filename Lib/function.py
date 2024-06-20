@@ -35,7 +35,7 @@ def set_target_list(start: int, end: int, single=None, title: str = "AP", fill: 
     例: set_target_list(1, 3, ["LM5", "LM7"], "AP")
     返回 ["AP1", "AP2", "AP3", "LM5", "LM7"]
     :param remove: 需要从连续点位中移除的点位 缺省为空
-    :param fill:  是否要对 10 以下的库位自动补0 缺省为否
+    :param fill:  是否要对 10 以下的库位自动补 0 缺省为否
     :param title: 站点名前缀 缺省为 “AP”
     :param start: 连续点位的起始 包含该值
     :param end:   连续点位的结束值 包含该值
@@ -185,7 +185,7 @@ def get_distribute_order_data(fromLoc: str, toLocList: list, returnLoc: str, ord
 
 
 def set_goods_shape(robot: str, xmin: float, ymin: float, xmax: float, ymax: float, angle: float = None,
-                    ip: str = None):
+                    ip: str = None, autoLoad: bool = False):
     """
     设置货物形状
     :param ymax: 货物 ymax
@@ -195,17 +195,25 @@ def set_goods_shape(robot: str, xmin: float, ymin: float, xmax: float, ymax: flo
     :param robot: 机器人名称
     :param ip: 服务器ip，默认为 Lib.config.py 里的 ip
     :param angle: 货物与机器人弧度，缺省为 0
+    :param autoLoad: 是否根据取放货任务自动追加货物形状
     :return: 无
     """
     if angle is None:
         angle = 0
     if ip is None:
         ip = config.ip
-    data = {
-        "vehicle_id": robot,
-        "goods_shape": str([xmin, ymin, xmax, ymax]),
-        "goods_vehicle_angle": angle
-    }
+    if not autoLoad:
+        data = {
+            "vehicle_id": robot,
+            "goods_shape": str([xmin, ymin, xmax, ymax]),
+            "goods_vehicle_angle": angle
+        }
+    else:
+        data = {
+            "vehicle_id": robot,
+            "load_unload_goods_shape": str([xmin, ymin, xmax, ymax]),
+            "goods_vehicle_angle": angle
+        }
     requests.post("http://" + ip + ":8088/updateSimRobotState", json.dumps(data))
 
 
@@ -264,7 +272,7 @@ def move_robot(agv: str, position: str, angle: float = None, ip: str = None):
 
 def goto_order(location, vehicle: str = None, order_id: str = None, group: str = None, label: str = None,
                complete: bool = None, ip: str = None, prepoint_redo: bool = None, speed: float = None,
-               recognize: bool = False):
+               recognize: bool = False, operation: str = 'Wait'):
     """
     发送订单
     :param ip: 服务器 ip，缺省则采用 Lib.config.py 里的 ip
@@ -277,6 +285,7 @@ def goto_order(location, vehicle: str = None, order_id: str = None, group: str =
     :param prepoint_redo: 订单需要重做时, 是否先回到前置点, 缺省则为 false
     :param speed: 动作块信息里的 max_speed
     :param recognize: 是否是识别任务, 缺省为否
+    :param operation: 目标点动作, 缺省为 Wait
     :return: 无
     """
     data = {}
@@ -294,7 +303,7 @@ def goto_order(location, vehicle: str = None, order_id: str = None, group: str =
             "blocks": [{
                 "blockId": get_random_str(),
                 "location": location,
-                "operation": "Wait",
+                "operation": operation,
                 "operation_args": {
                     "recognize": recognize
                 }
@@ -315,7 +324,7 @@ def goto_order(location, vehicle: str = None, order_id: str = None, group: str =
             operation_args = {
                 "recognize": recognize
             }
-            blocks.append(get_block_data(loc, operation="JackLoad", operation_args=operation_args, speed=speed))
+            blocks.append(get_block_data(loc, operation=operation, operation_args=operation_args, speed=speed))
         data = {
             "id": order_id,
             "blocks": blocks,
@@ -436,10 +445,9 @@ def set_robot_emergency(robot: str, emergency: bool = True, ip: str = None):
 
 
 def load_unload_order(location: [str, str], vehicle: str = None, order_id: str = None, group: str = None,
-                      label: str = None, complete: bool = None, ip: str = None, out: str = ""):
+                      label: str = None, complete: bool = None, ip: str = None, out: str = "", reverse: bool = False):
     """
     发送取放货订单
-    :param out: 打印日志格式, simple 为简易打印, 其他为完整订单打印
     :param ip: 服务器 ip，缺省则采用 Lib.config.py 里的 ip
     :param order_id: 订单 id，缺省则随机生成
     :param location: 目标点: 输入两个目标点，第一个执行 load; 第二个执行 unload
@@ -447,6 +455,8 @@ def load_unload_order(location: [str, str], vehicle: str = None, order_id: str =
     :param group: 机器人组，缺省为空
     :param label: 标签，缺省为空
     :param complete: 是否封口，缺省则封口
+    :param out: 打印日志格式, simple 为简易打印, 其他为完整订单打印
+    :param reverse: true先放后取; false先取后放
     :return: 无
     """
     if ip is None:
@@ -455,13 +465,22 @@ def load_unload_order(location: [str, str], vehicle: str = None, order_id: str =
         order_id = get_random_str()
     if complete is None:
         complete = True
-    blocks = [get_block_data(location[0], operation="ForkLoad", operation_args={
-        "start_height": 0.1,
-        "end_height": 0.5
-    }), get_block_data(location[1], operation="ForkUnload", operation_args={
-        "start_height": 0.5,
-        "end_height": 0.1
-    })]
+    if not reverse:
+        blocks = [get_block_data(location[0], operation="ForkLoad", operation_args={
+            "start_height": 0.1,
+            "end_height": 0.5
+        }), get_block_data(location[1], operation="ForkUnload", operation_args={
+            "start_height": 0.5,
+            "end_height": 0.1
+        })]
+    else:
+        blocks = [get_block_data(location[0], operation="ForkUnload", operation_args={
+            "start_height": 0.1,
+            "end_height": 0.5
+        }), get_block_data(location[1], operation="ForkLoad", operation_args={
+            "start_height": 0.5,
+            "end_height": 0.1
+        })]
     data = {
         "id": order_id,
         "blocks": blocks,
@@ -1355,9 +1374,64 @@ def rds_mapf_solver_analyze(log_path: str = None):
         print("No lines containing 'TCost' found in the file")
 
 
+def time_consume(limit: float, uniform_a: int, uniform_b: int):
+    while limit > 0:
+        print(round(limit, 3))
+        limit -= random.uniform(uniform_a, uniform_b)
+        time.sleep(1)
+    print('Ending...')
+
+
+def transfer_path(input_str):
+    output_str = re.sub(r'\s*-\s*', ', ', input_str)
+    print(output_str)
+
+
+
+def route_stat(ip: str = config.ip):
+    csv_file = 'route_statistics.csv'
+    if os.path.exists(csv_file):
+        os.remove(csv_file)
+    response = requests.get(f'http://{ip}:8088/getRouteStat')
+    if response.status_code == 200:
+        data = response.json()
+        stats = data['stat']
+        df = pd.DataFrame(stats)
+        df['dist'] = df['dist'].round(2)
+        mode_counts = df['mode'].value_counts().reindex([0, 1, 2, 3], fill_value=0)
+        path_counts = df['path'].value_counts().reindex([True, False], fill_value=0)
+        dist_counts = df['dist'].apply(lambda x: 'dist_valid' if x != -1 else 'dist_invalid').value_counts()
+        time_sum = df['time'].sum().round(2)
+        time_mean = df['time'].mean().round(2)
+        mode_mean_time = df.groupby('mode')['time'].mean().round(2)
+        summary_data = {
+            'Table': [mode_counts[0]],
+            'Cache': [mode_counts[1]],
+            'Astar': [mode_counts[2]],
+            'Error': [mode_counts[3]],
+            'path': [path_counts[True]],
+            'dist': [dist_counts.get('dist_valid', 0)],
+            'timeSum': [time_sum],
+            'timeMean': [time_mean],
+            'TableTimeMean': [mode_mean_time[0]],
+            'CacheTimeMean': [mode_mean_time[1]],
+            'AstarTimeMean': [mode_mean_time[2]],
+        }
+        if path_counts.get(False, 0) > 0:
+            summary_data['InvalidPath'] = [path_counts[False]]
+        if dist_counts.get('dist_invalid', 0) > 0:
+            summary_data['InvalidDist'] = [dist_counts['dist_invalid']]
+        summary_df = pd.DataFrame(summary_data)
+        combined_df = pd.concat([df, summary_df], axis=1)
+        combined_df.to_csv('route_statistics.csv', index=False)
+        print('Data saved to route_statistics.csv')
+    else:
+        print(f"Failed to retrieve data: {response.status_code}")
+
 
 if __name__ == '__main__':
     # rds_log_time_analyze(r'F:\SEER\Code\Python\SimulationTest-pure\RDSCoreLog')
     # rds_log_time_analyze()
     # match()
-    rds_mapf_solver_analyze()
+    # time_consume(3600, 0, 4)
+    route_stat()
