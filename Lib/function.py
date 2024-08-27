@@ -1,24 +1,26 @@
 import csv
+import datetime
 import glob
+import json
 import math
 import os
-import json
-import re
-import uuid
-import time
 import random
-import datetime
-
-import pandas.core.series
-import requests
+import re
+import time
 import urllib.parse
+import uuid
+from enum import Enum
+from typing import List, Union
 
-import Lib.config
+import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
 import pandas as pd
-import networkx as nx
+import pandas.core.series
+import requests
+
+import Lib.config
 import Lib.config as config
-import matplotlib.pyplot as plt
 
 
 def get_random_str():
@@ -1350,7 +1352,6 @@ def rds_mapf_solver_analyze(log_path: str = None):
         for line in keyword_lines:
             print(line)
         open(csv_path, 'w').close()  # 清空表格
-        data_list = []
         for index, line in enumerate(keyword_lines):
             elements = (lambda m_line: re.findall(r'\[(.*?)]', m_line))(line)  # 提取[]内的元素
             solver_info = list(elements[-1].split("|"))
@@ -1429,9 +1430,146 @@ def route_stat(ip: str = config.ip):
         print(f"Failed to retrieve data: {response.status_code}")
 
 
+def set_position_by_edge(robot: str, sid: str, eid: str, per: float, ip: str = None):
+    """
+    设置货物形状
+    :param robot: 机器人名称
+    :param sid: 线路起点
+    :param eid: 线路终点
+    :param per: 线路百分比
+    :param ip: 服务器ip，默认为 Lib.config.py 里的 ip
+    :return: 无
+    """
+    if ip is None:
+        ip = config.ip
+    data = {
+        'vehicle_id': robot,
+        'position_by_edge': json.dumps({
+            's': sid,
+            'e': eid,
+            'p': per
+        })
+    }
+    requests.post("http://" + ip + ":8088/updateSimRobotState", json.dumps(data))
+
+
+def clear_goods_shape(vehicles: list[str], ip: str = None):
+    """
+    清空机器人形状
+    :param vehicles: 机器人列表
+    :param ip: 服务器 ip, 缺省采用 Lib.config.py 里的 ip
+    :return: 无
+    """
+    if ip is None:
+        ip = config.ip
+    for vehicle in vehicles:
+        data = {
+            'vehicle_id': vehicle,
+            'clear_goods_shape': True
+        }
+        requests.post("http://" + ip + ":8088/updateSimRobotState", json.dumps(data))
+        time.sleep(0.3)
+
+
+class DispatchStatus(Enum):
+    dispatchable = 'dispatchable'
+    undispatchable = 'undispatchable_unignore'
+    ignore = 'undispatchable_ignore'
+
+
+def set_dispatchable_status(robot: Union[str, List[str]], d_type: DispatchStatus, ip: str = config.ip):
+    """
+    设置机器人为可接单状态
+    :param robot: 机器人名称
+    :param d_type: 接单状态
+    :param ip: 服务器ip, 默认为 Lib.config.py 里的 ip
+    :return: None
+    """
+    if isinstance(robot, str):
+        robot = [robot]
+    data = {
+        'vehicles': robot,
+        'type': str(d_type.value)
+    }
+    requests.post("http://" + ip + ":8088/dispatchable", json.dumps(data))
+
+
+def calculate_extra_radius(h, w, e):
+    return math.sqrt(h ** 2 + (w + e) ** 2) - math.sqrt(h ** 2 + w ** 2)
+
+
+def clear_final_orders_in_db():
+    requests.post('http://' + config.ip + '/deleteAllOrders')
+
+
+def reset_scene():
+    """
+    1. 终止场景中所有机器人订单, 并设置为可接单
+    2. 清空数据库所有订单
+    :return:
+    """
+    terminate_order([])
+    time.sleep(2)
+    set_dispatchable_status([], DispatchStatus.dispatchable)
+    time.sleep(2)
+    clear_final_orders_in_db()
+
+
+def set_loop_order(loopPoints: list[str], vehicle: str):
+    data = {
+        'id': get_random_str(),
+        'loopPoints': loopPoints,
+        'vehicle': vehicle
+    }
+    requests.post('http://' + config.ip + ':8088/setOrder', json.dumps(data))
+
+
+def order_template(r1: str, p1: str, t1: str, r2: str, p2: str, t2: str):
+    """
+    通用测试模板, 初始化两车位置并发送订单
+    :param r1: 机器人 1 名称
+    :param p1: 机器人 1 初始化位置
+    :param t1: 机器人 1 目标点
+    :param r2: 机器人 2 名称
+    :param p2: 机器人 2 初始化位置
+    :param t2: 机器人 2 目标点
+    :return:
+    """
+    move_robot(r1, p1)
+    move_robot(r2, p2)
+    time.sleep(2)
+    goto_order(t1, r1)
+    goto_order(t2, r2)
+
+
+def order_template_complex(*args):
+    """
+    通用测试模板, 初始化多个机器人位置并发送订单
+    :param args: 参数列表, 每组参数包含 机器人名称, 初始化位置, 目标点
+    :return:
+    """
+    if len(args) % 3 != 0:
+        raise ValueError(f"参数数量必须是 3 的倍数 (机器人名称, 初始化位置, 目标点), 实际数量: {len(args)}")
+    num_robots = len(args) // 3
+    for i in range(num_robots):
+        r = args[i * 3]
+        p = args[i * 3 + 1]
+        move_robot(r, p)
+        time.sleep(0.2)
+    time.sleep(5)
+    for i in range(num_robots):
+        r = args[i * 3]
+        t = args[i * 3 + 2]
+        goto_order(t, r)
+        time.sleep(0.2)
+
+
 if __name__ == '__main__':
     # rds_log_time_analyze(r'F:\SEER\Code\Python\SimulationTest-pure\RDSCoreLog')
     # rds_log_time_analyze()
     # match()
-    # time_consume(3600, 0, 4)
-    route_stat()
+    # time_consume(480, 0, 2)
+    set_position_by_edge('sim_01', 'LM12', 'PP7', 0.352)
+    # move_robot_by_xy('YJ-2F-Fork06', -22.5, -19.259)
+    # set_robot_angle('YJ-2F-Fork06', 0)
+    # move_robot('RIL-H-9006', 'AP10000', -3.14)
