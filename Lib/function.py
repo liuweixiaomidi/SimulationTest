@@ -6,10 +6,13 @@ import math
 import os
 import random
 import re
+import socket
+import struct
 import time
 import urllib.parse
 import uuid
 from enum import Enum
+from plistlib import dumps
 from typing import List, Union
 
 import matplotlib.pyplot as plt
@@ -377,7 +380,8 @@ def set_robot_angle(robot: str, angle: float, ip: str = None):
         "vehicle_id": robot,
         "angle": angle
     }
-    requests.post('http://' + ip + ':8088/updateSimRobotState', json.dumps(data))
+    result = requests.post('http://' + ip + ':8088/updateSimRobotState', json.dumps(data))
+    print(result, robot, angle)
 
 
 def set_robot_blocked(robot: str, ip: str = None):
@@ -623,6 +627,24 @@ def get_robot_state(robot: str, ip: str = None):
             if len(data):
                 result = data['state']
                 break
+    return result
+
+
+def get_robot_finished_path(robot: str, ip: str = None):
+    """
+    获取机器人经过的路线
+    :param robot: 机器人名称
+    :param ip: 服务器 ip, 缺省则采用 Lib.config 中的 ip
+    :return: list[str]
+    """
+    result = []
+    if ip is None:
+        ip = Lib.config.ip
+    status = requests.get('http://' + ip + ':8088/robotsStatus').json()
+    for r in status['report']:
+        if r['vehicle_id'] == robot:
+            result: list = r.get('finished_path')
+            break
     return result
 
 
@@ -1377,7 +1399,8 @@ def rds_mapf_solver_analyze(log_path: str = None):
 
 def time_consume(limit: float, uniform_a: int, uniform_b: int):
     while limit > 0:
-        print(round(limit, 3))
+        # print(round(limit, 3))
+        print(f"{limit:.3f}")
         limit -= random.uniform(uniform_a, uniform_b)
         time.sleep(1)
     print('Ending...')
@@ -1450,7 +1473,8 @@ def set_position_by_edge(robot: str, sid: str, eid: str, per: float, ip: str = N
             'p': per
         })
     }
-    requests.post("http://" + ip + ":8088/updateSimRobotState", json.dumps(data))
+    result = requests.post("http://" + ip + ":8088/updateSimRobotState", json.dumps(data))
+    print(result, robot, sid, eid, per)
 
 
 def clear_goods_shape(vehicles: list[str], ip: str = None):
@@ -1564,12 +1588,156 @@ def order_template_complex(*args):
         time.sleep(0.2)
 
 
+def single_order_template(r: str, p: str, t: str):
+    """
+    通用测试模板, 初始化机器人位置并发送订单
+    :param r: 机器人名称
+    :param p: 机器人初始化位置
+    :param t: 机器人目标点
+    :return:
+    """
+    move_robot(r, p)
+    time.sleep(2)
+    goto_order(t, r)
+
+
+def go_away_loop(data: dict):
+    requests.post('http://' + config.ip + ':8088/goAwayLoop', json.dumps(data))
+
+def terminate_all_order():
+    data = {
+        "disableVehicle": False,
+        "vehicles": []
+    }
+    requests.post('http://' + config.ip + ':8088/terminate', json.dumps(data))
+
+
+def set_operation_time(vehicle: str, operation: Union[str, list], t: Union[float, list[float]], ip: str = config.ip):
+    """
+    设置仿真机器人执行动作的时间
+    :param vehicle: 机器人名称, 不可缺省
+    :param operation: 单一动作名称或动作列表, 不可缺省
+    :param t: 单一动作时间或动作时间列表, 与 operation 一一对应, 不可缺省
+    :param ip: 服务器 ip, 缺省采用配置文件内的 ip
+    :return: None
+    """
+    match operation:
+        case str():
+            data = {
+                'vehicle_id': vehicle,
+                'operation_time': json.dumps([{
+                    'operation': operation,
+                    'time': t
+                }])
+            }
+        case list():
+            data = {
+                'vehicle_id': vehicle,
+                'operation_time': json.dumps(
+                    [{'operation': op, 'time': ti} for op, ti in zip(operation, t)]
+                )
+            }
+        case _:
+            raise TypeError('operation 参数必须为 str 或 list 类型')
+    requests.post('http://' + ip + ':8088/updateSimRobotState', json.dumps(data))
+
+
+def set_reach_deviation(vehicles: list[str], deviation: float, ip: str = None):
+    """
+    设置机器人到点误差
+    :param vehicles: 机器人列表
+    :param deviation: 到点误差
+    :param ip: 服务器 ip, 缺省采用 Lib.config.py 里的 ip
+    :return: 无
+    """
+    if ip is None:
+        ip = config.ip
+    for vehicle in vehicles:
+        data = {
+            'vehicle_id': vehicle,
+            'reach_deviation': deviation
+        }
+        requests.post("http://" + ip + ":8088/updateSimRobotState", json.dumps(data))
+        time.sleep(0.3)
+
+def draw_plot():
+    t = np.linspace(0, 60, 100)
+    y = 50 * np.exp(-0.15 * t) + 1  # y = 50 * e^(-0.15 * t) + 1
+    plt.figure(figsize=(10, 6))
+    plt.plot(t, y, label=r"$y = 50e^{-0.15t} + 1$", color="b")
+    plt.xlabel("Time (t)")
+    plt.ylabel("y")
+    plt.title("Plot of y = 50e^(-0.15t) + 1")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def plot_exponential_and_double_exponential(A1, ak1, B1, bk1, C1, A2, ak2, C2):
+    x = np.linspace(0, 100, 100)
+    # 双指数函数 y1 = A1 * exp(ak1 * x) + B1 * exp(bk1 * x) + C1
+    y1 = A1 * np.exp(ak1 * x) + B1 * np.exp(bk1 * x) + C1
+    # 指数函数 y2 = A2 * exp(ak2 * x) + C2
+    y2 = A2 * np.exp(ak2 * x) + C2
+    plt.figure(figsize=(10, 6))
+    plt.plot(x, y1, label='Double Exponential Function', color='blue')
+    plt.plot(x, y2, label='Exponential Function', color='red')
+    plt.title('Exponential and Double Exponential Functions')
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def pack_msg(reqId, msgType, msg=None):
+    if msg is None:
+        msg = {}
+    msg_len = 0
+    if isinstance(msg, dict) or isinstance(msg, list):
+        json_str = json.dumps(msg)
+    else:
+        json_str = msg
+    if msg != {}:
+        msg_len = len(json_str)
+    raw_msg = struct.pack('!BBHLH6s', 0x5A, 0x01, reqId, msg_len, msgType, b'\x00\x00\x00\x00\x00\x00')
+    if msg != {}:
+        raw_msg += bytearray(json_str, 'ascii')
+    return raw_msg
+
+def modify_param(data: dict=None, ip: str=None):
+    """
+    永久修改参数
+    :param data: 参数字典
+    :param ip: 服务器地址
+    :return:
+    """
+    tcp_ip = config.ip if ip is None else ip
+    so_19207 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    so_19207.connect((tcp_ip, 19207))
+    so_19207.settimeout(20)
+    msg = pack_msg(1, 4101, data)
+    so_19207.send(msg)
+
+def recover_param(ip: str=None):
+    """
+    还原参数
+    :param ip: 服务器地址
+    :return:
+    """
+    tcp_ip = config.ip if ip is None else ip
+    so_19207 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    so_19207.connect((tcp_ip, 19207))
+    so_19207.settimeout(20)
+    msg = pack_msg(1, 4102, [])
+    so_19207.send(msg)
+
+def delete_all_orders(ip: str=None):
+    """
+    清空数据库订单
+    :param ip: 服务器地址
+    :return:
+    """
+    ip = config.ip if ip is None else ip
+    requests.post('http://' + ip + ':8088/deleteAllOrders', json.dumps({}))
+
 if __name__ == '__main__':
-    # rds_log_time_analyze(r'F:\SEER\Code\Python\SimulationTest-pure\RDSCoreLog')
-    # rds_log_time_analyze()
-    # match()
-    # time_consume(480, 0, 2)
-    set_position_by_edge('sim_01', 'LM12', 'PP7', 0.352)
-    # move_robot_by_xy('YJ-2F-Fork06', -22.5, -19.259)
-    # set_robot_angle('YJ-2F-Fork06', 0)
-    # move_robot('RIL-H-9006', 'AP10000', -3.14)
+    time_consume(60*(60*3+56), 0, 10)
