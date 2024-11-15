@@ -1,30 +1,26 @@
+import os
+import re
 import csv
-import datetime
 import glob
 import json
 import math
-import os
+import time
+import uuid
 import random
-import re
 import socket
 import struct
-import time
-import urllib.parse
-import uuid
-from enum import Enum
-from plistlib import dumps
-from typing import List, Union
-
-import matplotlib.pyplot as plt
-import networkx as nx
+import datetime
+import requests
+import Lib.config
 import numpy as np
 import pandas as pd
+import urllib.parse
+import networkx as nx
+from enum import Enum
 import pandas.core.series
-import requests
-
-import Lib.config
 import Lib.config as config
-
+from typing import List, Union
+import matplotlib.pyplot as plt
 
 def get_random_str():
     """
@@ -32,7 +28,6 @@ def get_random_str():
     :return:
     """
     return str(uuid.uuid1())
-
 
 def set_target_list(start: int, end: int, single=None, title: str = "AP", fill: bool = None, remove=None):
     """
@@ -69,6 +64,22 @@ def set_target_list(start: int, end: int, single=None, title: str = "AP", fill: 
             result.remove(i)
     return result
 
+def get_target_list(inputParams):
+    start = inputParams['start']
+    end = inputParams['end']
+    fill = inputParams['fill']
+    title = inputParams['title']
+    single = inputParams['single']
+    remove = inputParams['remove']
+    result = [
+        f"{title}{'0' if fill and 0 < i < 10 else ''}{i}"
+        for i in range(start, end + 1)
+    ]
+    single = [single] if isinstance(single, str) else (json.loads(single) or [])
+    remove = [remove] if isinstance(remove, str) else (json.loads(remove) or [])
+    result.extend(single)
+    result = [item for item in result if item not in remove]
+    return result
 
 def set_order(order: dict, ip: str = None):
     """
@@ -1046,19 +1057,21 @@ def get_last_second_block_location(order_id: str, ip: str = None):
     return ""
 
 
-def add_block(location: any, order_id: str, complete: bool = None, ip: str = None):
+def add_block(location: any, order_id: str, complete: bool = None, ip: str = None, pair: dict=None):
     """
     追加动作块
     :param location: 目标点
     :param order_id: 订单号
     :param complete: 是否封口运单, 缺省为否
     :param ip: 服务器 ip, 缺省采用 Lib.config::ip
+    :param pair: block 中增加新的字段
     :return: None
     """
     if complete is None:
         complete = False
     if ip is None:
         ip = config.ip
+    pair = pair or {}
     data = dict()
     if type(location) is str:
         data = {
@@ -1067,7 +1080,7 @@ def add_block(location: any, order_id: str, complete: bool = None, ip: str = Non
                 "blockId": str(uuid.uuid1()),
                 "location": location,
                 "operation": "Wait",
-
+                **pair
             }],
             "complete": complete
         }
@@ -1523,6 +1536,10 @@ def calculate_extra_radius(h, w, e):
 
 
 def clear_final_orders_in_db():
+    """
+    删除数据库中所有终态订单
+    :return:
+    """
     requests.post('http://' + config.ip + '/deleteAllOrders')
 
 
@@ -1540,6 +1557,12 @@ def reset_scene():
 
 
 def set_loop_order(loopPoints: list[str], vehicle: str):
+    """
+    下发环线订单
+    :param loopPoints: 环线点位集合
+    :param vehicle: 机器儿名称
+    :return:
+    """
     data = {
         'id': get_random_str(),
         'loopPoints': loopPoints,
@@ -1605,6 +1628,10 @@ def go_away_loop(data: dict):
     requests.post('http://' + config.ip + ':8088/goAwayLoop', json.dumps(data))
 
 def terminate_all_order():
+    """
+    终止场景中的所有订单
+    :return:
+    """
     data = {
         "disableVehicle": False,
         "vehicles": []
@@ -1739,5 +1766,28 @@ def delete_all_orders(ip: str=None):
     ip = config.ip if ip is None else ip
     requests.post('http://' + ip + ':8088/deleteAllOrders', json.dumps({}))
 
+class AutoOrderType(Enum):
+    park = 'park'
+    charge = 'charge'
+    fire = 'fire'
+    rotate_charge = 'rotate'
+
+def get_robot_auto_order_status(vehicles: Union[str, list], condition: AutoOrderType, ip: str=config.ip):
+    """
+    查询机器人不执行自动任务的原因
+    :param vehicles: 机器人名称, 可输入列表, 空表示查询全部, 不可缺省
+    :param condition: 查询类型
+    :param ip: 服务器地址, 缺省则采用 Lib.config.ip
+    :return: dict
+    """
+    data = {
+        "vehicles": vehicles,
+        "type": str(condition.value)
+    }
+    result = requests.post('http://' + ip + ':8088/getRobotAutoOrderStatus', json.dumps(data)).json()
+    return result
+
 if __name__ == '__main__':
-    time_consume(60*(60*3+56), 0, 10)
+    # time_consume(60*(60*0+14), 0, 6)
+    # terminate_all_order()
+    pass

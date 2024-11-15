@@ -792,6 +792,8 @@ def mapf_adjust_requirement_2():
     """
     terminate_all_order()
     time.sleep(2)
+    delete_all_orders()
+    time.sleep(2)
     modify_param({'RDSDispatcher': {
         'AutoPark': False,
         'ClearDBOnStart': True,
@@ -820,9 +822,42 @@ def mapf_adjust_requirement_2():
     start_time = time.time()
     while get_current_location('sim_02') != 'AP44' and time.time() - start_time < 60:
         time.sleep(2)
-    time.sleep(10)
+    time.sleep(5)
     loc_1 = get_current_location('sim_01')
     assert loc_1 == 'LM38', loc_1
+    time.sleep(2)
+    loc_2 = get_current_location('sim_01')
+    sta_1 = get_order_state(oid)
+    assert loc_2 == 'LM38' and sta_1 == 'RUNNING', {loc_2, sta_1}
+    modify_param({'RDSDispatcher': {
+        'DelayFinishTime': 0,
+    }})
+    time.sleep(2)
+    start_time = time.time()
+    while get_order_state(oid) != 'WAITING' and time.time() - start_time < 20:
+        time.sleep(2)
+    time.sleep(0.5)
+    ex_item = {
+        'adjustInfo': [{
+            'points': 'AP44',
+            'range': 3
+        }]
+    }
+    add_block('Loc-3', oid, True, pair=ex_item)
+    time.sleep(2)
+    sta_2 = get_order_state(oid)
+    assert sta_2 == 'RUNNING', sta_2
+    start_time = time.time()
+    while get_current_location('sim_01') != 'LM48' and time.time() - start_time < 60:
+        time.sleep(2)
+    sta_3 = get_order_state(oid)
+    assert sta_3 == 'FINISHED', sta_3
+
+def auto_order_record():
+    start_time = time.time()
+    while time.time() - start_time < 90:
+        print(get_robot_auto_order_status([], AutoOrderType.park))
+        time.sleep(1)
 
 if __name__ == '__main__':
-    mapf_adjust_requirement_2()
+    auto_order_record()
