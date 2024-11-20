@@ -3,7 +3,7 @@ import re
 import glob
 import pandas as pd
 
-config_log_path = r'C:\Users\seer\Downloads\RDSCore-Debug-20240510-0717-0747-20240510153421\log'
+config_log_path = r'C:\.SeerRobotics\rdscore\diagnosis\log'
 
 
 def rds_log_time_analyze(log_path: str = None):
@@ -12,11 +12,12 @@ def rds_log_time_analyze(log_path: str = None):
     只分析最新的.log文件中最多 100 条最近的 TCost 日志 \n
     控制台打印:
         1. 分析 TCost 日志数量
-        2. TCost 日志原文
-        3. 每周期耗时
+        2. TCost 日志原文(已被注释)
+        3. 每周期耗时(已被注释)
         4. 平均每周期耗时
         5. 耗时最长的 5 个周期
         6. 耗时最短的 5 个周期
+        7. 最近 10 个周期的耗时
     :param log_path: 日志所在文件夹路径, 默认路径写在 config_log_path
     :return: csv 耗时降序排序, 在同级文件 timeCost.csv 中
     """
@@ -29,17 +30,14 @@ def rds_log_time_analyze(log_path: str = None):
         print(f"No log files found in {log_path}")
         return None
     latest_log_file_path = max(log_files, key=os.path.getmtime)  # 只分析最新的一个日志
-    # keyword_lines = (lambda file_path, keyword: [
-    #     m_line.strip() for m_line in open(file_path, 'r').readlines() if keyword in m_line
-    # ] if os.path.exists(file_path) else [])(latest_log_file_path, 'TCost')
     # 找到所有包含 TCost 的行
     keyword_lines = [m_line.strip() for m_line in open(latest_log_file_path, 'r').readlines() if 'TCost' in m_line]
     # 最多只取最近 1000 条
     keyword_lines = keyword_lines[-1000:] if len(keyword_lines) > 1000 else keyword_lines
     if keyword_lines:
         print(f"Lines containing {len(keyword_lines)} 'TCost' in the file:")
-        for line in keyword_lines:
-            print(line)
+        # for line in keyword_lines:
+        #     print(line) # 这里打印的是日志原文
         open(csv_path, 'w').close()  # 清空表格
         data_list = []
         for index, line in enumerate(keyword_lines):
@@ -54,13 +52,14 @@ def rds_log_time_analyze(log_path: str = None):
             data_list.append(df_data)
         df = pd.concat(data_list, axis=1)   # 按列追加
         time_cost_columns = df.iloc[0, 1::2]
-        print(time_cost_columns)
+        # print(time_cost_columns)  # 这里打印的是单一周期耗时
         time_cost_columns = pd.to_numeric(time_cost_columns, errors='coerce')   # pandas.core.series.Series 转换为数值类型
         time_cost_columns = time_cost_columns.dropna()  # 删除有缺失值的行
         df.to_csv(csv_path, index=False)    # 写入csv文件
         print(f"平均每周期耗时: {time_cost_columns.mean()}")
         print(f"最大5个周期的耗时: {time_cost_columns.nlargest(5).values}")
         print(f"最小5个周期的耗时: {time_cost_columns.nsmallest(5).values}")
+        print(f"最近10个周期的耗时: {time_cost_columns.tail(10).values}")
     else:
         print("No lines containing 'TCost' found in the file")
 
