@@ -859,5 +859,12 @@ def auto_order_record():
         print(get_robot_auto_order_status([], AutoOrderType.park))
         time.sleep(1)
 
+def query_frequency():
+    start_time = time.time()
+    while time.time() - start_time < 600:
+        res = requests.get('http://' + config.ip + ':8088/orders').json()
+        print(res)
+        time.sleep(9)
+
 if __name__ == '__main__':
-    auto_order_record()
+    query_frequency()

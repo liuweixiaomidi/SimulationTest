@@ -1788,6 +1788,5 @@ def get_robot_auto_order_status(vehicles: Union[str, list], condition: AutoOrder
     return result
 
 if __name__ == '__main__':
-    # time_consume(60*(60*0+14), 0, 6)
+    time_consume(60*(60*0+2), 0, 3)
     # terminate_all_order()
-    pass
