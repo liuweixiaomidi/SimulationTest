@@ -48,7 +48,7 @@ def extract_failed_tests(report_path:str):
             if not value or "result" not in value[0] or (
                     value[0]['result'] != "Failed" and value[0]['result'] != "Failed"):
                 continue
-            if count > 2:
+            if count > 50:
                 break
             abnormal_tests.append(key)
             count += 1
@@ -66,12 +66,12 @@ def run_failed_tests(failed_tests):
         single_full_path = os.path.join(abs_path, test.replace("/", "\\"))
         # print(single_full_path)
         all_full_path.append(single_full_path)
-    pytest.main(["-v", "--html=report.html", "--self-contained-html"] + all_full_path)
+    pytest.main(["-v -m m0", "--html=report.html", "--self-contained-html"] + all_full_path)
 
 if __name__ == "__main__":
     # 提供HTML报告的路径
     abs_path = r'C:\Users\seer\PycharmProjects\AutoTest'   # 测试代码仓库路径
-    path = r'D:\download\report1031.html'   # 测试报告路径
+    path = r'D:\download\report0106.html'   # 测试报告路径
     # 提取失败的测试用例路径
     failed = extract_failed_tests(path)
     if failed:

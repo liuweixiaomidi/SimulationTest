@@ -376,6 +376,27 @@ def move_robot_by_xy(robot: str, x: float, y: float, ip: str = None):
     }
     requests.post('http://' + ip + ':8088/updateSimRobotState', json.dumps(data))
 
+def move_robot_by_edge(robot: str, s: str, e: str, p: float, a: float, ip: str=config.ip):
+    """
+    将机器人移动到边上
+    :param robot: 机器人名称
+    :param s: 边起点
+    :param e: 边终点
+    :param p: 边百分比
+    :param a: 机器人朝向, 弧度
+    :param ip: 服务器地址, 缺省采用 config.ip
+    :return: None
+    """
+    data = {
+        "vehicle_id": robot,
+        "angle": a,
+        "position_by_edge": json.dumps({
+            "s": s,
+            "e": e,
+            "p": p
+        }),
+    }
+    requests.post('http://' + ip + ':8088/updateSimRobotState', json.dumps(data))
 
 def set_robot_angle(robot: str, angle: float, ip: str = None):
     """
@@ -1466,20 +1487,22 @@ def route_stat(ip: str = config.ip):
         print(f"Failed to retrieve data: {response.status_code}")
 
 
-def set_position_by_edge(robot: str, sid: str, eid: str, per: float, ip: str = None):
+def set_position_by_edge(robot: str, sid: str, eid: str, per: float, angle: float = 0, ip: str = None):
     """
     设置货物形状
     :param robot: 机器人名称
     :param sid: 线路起点
     :param eid: 线路终点
     :param per: 线路百分比
-    :param ip: 服务器ip，默认为 Lib.config.py 里的 ip
+    :param angle: 朝向, 默认为 0
+    :param ip: 服务器ip,默认为 Lib.config.py 里的 ip
     :return: 无
     """
     if ip is None:
         ip = config.ip
     data = {
         'vehicle_id': robot,
+        'angle': angle,
         'position_by_edge': json.dumps({
             's': sid,
             'e': eid,
@@ -1487,7 +1510,7 @@ def set_position_by_edge(robot: str, sid: str, eid: str, per: float, ip: str = N
         })
     }
     result = requests.post("http://" + ip + ":8088/updateSimRobotState", json.dumps(data))
-    print(result, robot, sid, eid, per)
+    print(result, robot, sid, eid, per, angle)
 
 
 def clear_goods_shape(vehicles: list[str], ip: str = None):
@@ -1586,7 +1609,7 @@ def order_template(r1: str, p1: str, t1: str, r2: str, p2: str, t2: str):
     move_robot(r2, p2)
     time.sleep(2)
     goto_order(t1, r1)
-    goto_order(t2, r2)
+    # goto_order(t2, r2)
 
 
 def order_template_complex(*args):
@@ -1627,16 +1650,17 @@ def single_order_template(r: str, p: str, t: str):
 def go_away_loop(data: dict):
     requests.post('http://' + config.ip + ':8088/goAwayLoop', json.dumps(data))
 
-def terminate_all_order():
+def terminate_all_order(ip: str=config.ip):
     """
     终止场景中的所有订单
+    :param ip: 服务器 ip, 缺省采用配置文件内的 ip
     :return:
     """
     data = {
         "disableVehicle": False,
         "vehicles": []
     }
-    requests.post('http://' + config.ip + ':8088/terminate', json.dumps(data))
+    requests.post('http://' + ip + ':8088/terminate', json.dumps(data))
 
 
 def set_operation_time(vehicle: str, operation: Union[str, list], t: Union[float, list[float]], ip: str = config.ip):
@@ -1788,5 +1812,5 @@ def get_robot_auto_order_status(vehicles: Union[str, list], condition: AutoOrder
     return result
 
 if __name__ == '__main__':
-    time_consume(60*(60*0+2), 0, 3)
+    time_consume(60*(60*0+40), 0, 7)
     # terminate_all_order()
