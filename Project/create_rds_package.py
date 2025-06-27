@@ -5,6 +5,8 @@ import datetime
 import sys
 import platform
 
+from Lib.function import load_unload_order
+
 IsWindows = False
 if platform.system() == "Windows":
     IsWindows = True
@@ -68,7 +70,7 @@ def run(rdshome:str, Version:str):
 
     ts = datetime.datetime.now().strftime('%m%d_%H%M%S')
     if IsWindows:
-        output_file = f"rdscore-{Version}-windows-{ts}-QS.zip"
+        output_file = f"rdscore-{Version}-windows.zip"
     else:
         output_file = f"rdscore-{Version}-linux-{ts}-QS.zip"
     with zipfile.ZipFile(output_file, "w",zipfile.ZIP_DEFLATED) as zipobj:
@@ -82,6 +84,6 @@ def run(rdshome:str, Version:str):
 
 
 if __name__ == "__main__":
-    Version = "v0.1.9.240426_dyb_test_checkCleanOrderFormat_v1"
-    run(r"C:\Core_SDK\windows_0415\0.1.9.240413v2\bin\release\win64", Version)
+    Version = "v0.1.9.250515_dyb_setChargeParam"    # 文件名称
+    run(r"D:\Core_SDK\windows_0.1.9.240621\0.1.9.240619\bin\release\win64", Version)    # 调度代码仓库路径
     # run("G:/SEER/Code/C++/RDSCore_0131_win/0.1.9.240124/bin/release/win64", Version)

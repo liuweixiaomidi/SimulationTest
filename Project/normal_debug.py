@@ -1,3 +1,13 @@
+import math
+import time
+from operator import truediv
+from xml.etree.ElementTree import indent
+
+import requests
+from fontTools.misc.psOperators import ps_integer
+from pandas.core.groupby.categorical import recode_for_groupby
+
+from Lib.config import linux_ip
 from Lib.function import *
 
 def chu_zhou_hui_ke():
@@ -495,18 +505,20 @@ def mapf_wait():
     goto_order('AP4583', 'F1-AGV-119')
 
 def finished_path():
-    move_robot('sim_02', 'AP15')
+    move_robot('sim_01', 'PP81')
     time.sleep(2)
-    dis_point_path(['LM57'])
-    time.sleep(2)
+    # dis_point_path(['LM57'])
+    # time.sleep(2)
     oid = get_random_str()
-    goto_order('AP18', 'sim_02', order_id=oid)
+    goto_order('AP73', 'sim_01', order_id=oid)
     time.sleep(2)
     for _ in range(100):
         o_state = get_order_state(oid)
         if o_state == 'FINISHED':
             break
-        print(o_state, get_robot_finished_path('sim_02'))
+        print(o_state, get_robot_finished_path('sim_01'))
+        time.sleep(0.2)
+        print(o_state, get_robot_unfinished_path('sim_01'))
         time.sleep(1)
 
 def fushikang():
@@ -682,7 +694,10 @@ def phillips():
     order_template_complex(*[item for sublist in result for item in sublist])
 
 def core_dump():
-    order_template('AMB-03', 'LM51', 'IC-F', 'AMB-04', 'LM57', 'B')
+    set_goods_shape('TK-05', -1, -0.85, 0.9, 0.8)
+    set_goods_shape('TK-08', -1, -0.85, 0.9, 0.8)
+    time.sleep(2)
+    order_template('TK-05', 'LM1056', 'AP1002', 'TK-08', 'AP1002', 'B')
 
 def mutex_mapf():
     terminate_all_order()
@@ -713,11 +728,35 @@ def fluent_coredump():
     goto_order('AP227', 'CBD-01', ip='192.168.9.201')
 
 def mapf_agv_adjust():
-    move_robot('sim_01', 'PP7')
-    move_robot('sim_02', 'PP9')
+    # terminate_all_order()
+    # move_robot('sim_01', 'PP7')
+    # move_robot('sim_02', 'PP9')
+    # move_robot('sim_03', 'PP81')
+    # time.sleep(2)
+    requests.post('http://' + config.ip + ':8088/setOrder', json.dumps({
+        'id': get_random_str(),
+        'vehicle': 'sim_02',
+        'complete': True,
+        'blocks': [{
+            'blockId': get_random_str(),
+            'location': 'AP42',
+            'operation': 'Wait',
+            'adjustInfo': [{
+                'points': 'AP42',
+                'range': 3
+                # 'region': [
+                #     {'x': +1, 'y': +1.5},
+                #     {'x': +1, 'y': -1.5},
+                #     {'x': -2, 'y': -1.5},
+                #     {'x': -2, 'y': +1.5},
+                # ]
+            }]
+        }]
+    }))
+    # goto_order('AP42', 'sim_02', recognize=True)
     time.sleep(2)
-    goto_order('AP41', 'sim_02', recognize=True)
-    goto_order('AP42', 'sim_01')
+    # goto_order('AP43', 'sim_01')
+    # goto_order('AP162', 'sim_03')
 
 def reduce_circle():
     terminate_all_order()
@@ -740,25 +779,28 @@ def mapf_adjust_self_position():
     set_dispatchable_status(['sim_03', 'sim_04', 'sim_05'], DispatchStatus.ignore)
     time.sleep(2)
     set_dispatchable_status(['sim_01', 'sim_02'], DispatchStatus.dispatchable)
+    move_robot('sim_02', 'PP9')
+    move_robot('sim_01', 'AP43')
+    time.sleep(2)
     oid = get_random_str()
-    goto_order('AP16', 'sim_02', complete=False, order_id=oid)
+    goto_order('AP42', 'sim_02', complete=False, order_id=oid)
     time.sleep(60)
     data = {
         'id': oid,
         'complete': False,
         'blocks': [{
             'blockId': get_random_str(),
-            'location': 'AP16',
+            'location': 'AP42',
             'operation': 'Wait',
             'adjustInfo': [{
-                'points': 'AP16',
+                'points': 'AP42',
                 'range': 2.5
             }]
         }]
     }
     requests.post('http://' + '127.0.0.1' + ':8088/addBlocks', json.dumps(data))
     time.sleep(3)
-    goto_order('AP19', 'sim_01')
+    goto_order('AP49', 'sim_01')
 
 def kate_adg():
     terminate_all_order()
@@ -866,5 +908,828 @@ def query_frequency():
         print(res)
         time.sleep(9)
 
+def get_topo_pos():
+    data = requests.get('http://' + config.ip + ':8088/robotsStatus').json()
+    for r in data['report']:
+        if r['vehicle_id'] == 'CBD16-S':
+            return r['area_resources_occupied'][0]['path_occupied']
+    return []
+
+def no_rotate_in_mid_path():
+    move_robot('CBD16-S', 'CP81', 1.57)
+    time.sleep(2)
+    data = get_topo_pos()
+    if len(data) <= 2:
+        assert False, f'unexpected path occupy: {len(data), data}'
+    goto_order('PP108', 'CBD16-S')
+    time.sleep(20)
+    f_path = get_robot_finished_path('CBD16-S')
+    assert 'LM80' in f_path, f'wrong path: {f_path}'
+
+def no_rotate_in_mid_path_simple():
+    move_robot_by_xy('CBD16-S', -1, -4.041)
+    set_robot_angle('CBD16-S', 1.57)
+    time.sleep(2)
+    goto_order('LM110', 'CBD16-S')
+
+def stop_safe_dist_with_2_point():
+    move_robot('sim_01', 'LM22')
+    move_robot('sim_02', 'LM23')
+    time.sleep(2)
+    goto_order('LM23', 'sim_01')
+
+def jin_bo_lift():
+    move_robot('R-WL-AGV-001', 'AP15127')
+    time.sleep(2)
+    goto_order('AP20004', 'R-WL-AGV-001')
+
+def recognize_resource():
+    move_robot('AGV-F3-52', 'LM2398', 1.57)
+    move_robot('AGV-F3-55', 'LM3023', 1.57)
+    time.sleep(2)
+    set_robot_speed('AGV-F3-55', 0.1)
+    time.sleep(2)
+    goto_order('AP2364', 'AGV-F3-55', operation='JackLoad', recognize=True)
+    time.sleep(1)
+    goto_order('AP2411', 'AGV-F3-52')
+
+def replan_path():
+    move_robot('AMR-HL03-33', 'LM1022', 1.57)
+    move_robot('AMR-HL04-34', 'LM1027', -1.57)
+    time.sleep(2)
+    goto_order('LM1023', 'AMR-HL03-33')
+    goto_order('LM1069', 'AMR-HL04-34')
+
+def min_dist():
+    move_robot('LIFT-02', 'LM238')
+    move_robot('LIFT-04', 'LM147')
+    time.sleep(2)
+    # goto_order('AP200', 'LIFT-04')
+    # goto_order('AP207', 'LIFT-02')
+
+def mapf_pp_crash():
+    terminate_all_order()
+    time.sleep(2)
+    set_dispatchable_status([], DispatchStatus.ignore)
+    time.sleep(2)
+    set_dispatchable_status(['F3-AGV-102', 'F3-AGV-105', 'F3-AGV-113'], DispatchStatus.dispatchable)
+    time.sleep(2)
+    move_robot('F3-AGV-105', 'AP3110', -1.57)
+    move_robot('F3-AGV-102', 'PP2749', +1.57)
+    move_robot('F3-AGV-113', 'AP3107', +1.57)
+    time.sleep(2)
+    goto_order('CP2804', 'F3-AGV-105')
+    goto_order('AP2808', 'F3-AGV-113')
+
+def order_issue_pool_10666():
+    """
+    多车型下的禁止旋转属性会导致死锁
+    :return:
+    """
+    terminate_all_order()
+    time.sleep(2)
+    set_dispatchable_status([], DispatchStatus.ignore)
+    time.sleep(2)
+    set_dispatchable_status(['CBD-10', 'CDD-20'], DispatchStatus.dispatchable)
+    time.sleep(2)
+    move_robot('CBD-10', 'CP71', 3.14)
+    move_robot('CDD-20', 'LM20374', 1.57)
+    time.sleep(2)
+    goto_order('AP20371', 'CDD-20')
+
+def order_issue_pool_10650():
+    """
+    路线选择不合理, 选择了转弯更多的路线
+    :return: None
+    """
+    terminate_all_order()
+    time.sleep(2)
+    set_dispatchable_status([], DispatchStatus.ignore)
+    time.sleep(2)
+    set_dispatchable_status(['AGV-F2-63', 'AGV-F2-70'], DispatchStatus.dispatchable)
+    time.sleep(2)
+    move_robot('AGV-F2-63', 'AP1346')
+    move_robot('AGV-F2-70', 'LM1297')
+    time.sleep(2)
+    goto_order('LM1353', 'AGV-F2-70', complete=False)
+    goto_order(['LM1347', 'AP1256'], 'AGV-F2-63')
+
+def order_issue_pool_10627():
+    terminate_all_order()
+    time.sleep(2)
+    set_dispatchable_status([], DispatchStatus.ignore)
+    time.sleep(2)
+    set_dispatchable_status(['YJ-2F-Fork04', 'YJ-2F-Fork02'], DispatchStatus.dispatchable)
+    time.sleep(2)
+    move_robot('YJ-2F-Fork04', 'LM4137')
+    move_robot('YJ-2F-Fork02', 'LM4138')
+    time.sleep(2)
+    goto_order(['AP3481', 'AP3425'], 'YJ-2F-Fork04')
+    goto_order('AP3486', 'YJ-2F-Fork02')
+
+def order_issue_pool_10614():
+    terminate_all_order()
+    time.sleep(2)
+    set_dispatchable_status([], DispatchStatus.dispatchable)
+    time.sleep(2)
+    move_robot('AMB-01', 'PP2')
+    time.sleep(2)
+    load_unload_order(['AP170', 'AP172'])
+    time.sleep(2)
+    load_unload_order(['AP172', 'AP170'])
+
+def no_cargo_pass():
+    set_position_by_edge('SWW4673006', 'AP2096', 'AP2091', 0.962)
+    # time.sleep(2)
+    # set_goods_shape('SWW4673006', -0.2, -0.2, 0.2, 0.2)
+
+def order_notice():
+    terminate_all_order()
+    time.sleep(2)
+    set_dispatchable_status([], DispatchStatus.dispatchable)
+    time.sleep(2)
+    goto_order(['AP77', 'ironMan'])
+
+def amb_mapf_recognize():
+    terminate_all_order()
+    time.sleep(2)
+    set_dispatchable_status([], DispatchStatus.dispatchable)
+    time.sleep(2)
+    move_robot('sim_01', 'LM1')
+    move_robot('sim_02', 'LM5')
+    set_reach_deviation(['sim_02'], 0.7)
+    time.sleep(2)
+    goto_order('LM8', 'sim_02', recognize=True, complete=False)
+    time.sleep(2)
+    goto_order('LM6', 'sim_01')
+
+def mapf_collision():
+    terminate_all_order()
+    time.sleep(2)
+    move_robot('SCA-A09', 'LM340', 3.14)
+    move_robot('SCA-A03', 'LM293', 3.14)
+    time.sleep(2)
+    goto_order('AP381', 'SCA-A03')
+    time.sleep(2)
+    goto_order('PP308', 'SCA-A09')
+
+def mapf_deadlock_3():
+    terminate_all_order()
+    time.sleep(2)
+    move_robot('AMB-5', 'LM151', math.radians(-177.04395869542438))
+    move_robot('AMB-2', 'LM149', math.radians(-90.871106307748580))
+    move_robot('AMB-3', 'LM145', math.radians(+179.56497299400000))
+    time.sleep(2)
+    goto_order('AP146', 'AMB-2')
+    goto_order('AP138', 'AMB-5')
+    goto_order('AP150', 'AMB-3')
+
+def mapf_deadlock_4():
+    terminate_all_order()
+    time.sleep(2)
+    move_robot('AMB-02', 'AP169', 3.14)
+    move_robot('AMB-01', 'LM403', 1.57)
+    time.sleep(2)
+    goto_order('LM58', 'AMB-02')
+    goto_order('AP171', 'AMB-01')
+
+def mapf_deadlock_5():
+    terminate_all_order()
+    time.sleep(2)
+    move_robot('F2-AGV-109', 'LM7927', 3.14)
+    move_robot('F2-AGV-142', 'LM7926', 0)
+    time.sleep(2)
+    goto_order('LM8374', 'F2-AGV-109')
+    goto_order('LM7796', 'F2-AGV-142')
+
+def order_issue_pool_11229():
+    ## 避让稳定不能舍近求远
+    order_template('AMB-01', 'LM405', 'AP187', 'AMB-02', 'AP184', 'LM64')
+
+def order_issue_pool_11247():
+    ## 库位前置点资源加速释放
+    order_template('AMB-01', 'LM508', 'AP526', 'AMB-02', 'LM670', 'AP534')
+
+def order_issue_pool_11247_3_agvs():
+    ## 3 车避让路线反复更换
+    terminate_all_order()
+    time.sleep(2)
+    move_robot('AMB-06', 'LM662')
+    move_robot('AMB-05', 'LM682')
+    move_robot('AMB-04', 'LM35')
+    time.sleep(2)
+    goto_order('DC026', 'AMB-06')
+    goto_order('BQ022', 'AMB-05')
+    goto_order('BQ062', 'AMB-04')
+
+def order_issue_pool_11147():
+    ## oneStep 任务有碰撞时不能下发
+    terminate_all_order()
+    time.sleep(2)
+    move_robot('AMB-06', 'LM25')
+    move_robot('AMB-05', 'AP62')
+    time.sleep(2)
+    goto_order('AP63', 'AMB-06')
+    time.sleep(5)
+    goto_order('AP7', 'AMB-05')
+
+def mapf_adjust_info_region_basic():
+    # 最基本的凸多边形调整范围测试: 2 车不能通过 1 车调整范围的区域
+    terminate_all_order()
+    set_dispatchable_status(['sim_04', 'sim_05'], DispatchStatus.ignore)
+    modify_param({'RDSDispatcher': {
+        'DelayFinishTime': 20,
+    }})
+    time.sleep(2)
+    move_robot('sim_01', 'LM3')
+    move_robot('sim_02', 'LM2')
+    move_robot('sim_03', 'LM8')
+    time.sleep(2)
+    data = {
+        'id': get_random_str(),
+        'vehicle': 'sim_01',
+        'complete': True,
+        'blocks': [{
+            'blockId': get_random_str(),
+            'location': 'AP17',
+            'adjustInfo': [{
+                'points': 'AP17',
+                'region': [
+                    { 'x': -3, 'y': +1 },
+                    { 'x': +1, 'y': +1 },
+                    { 'x': +1, 'y': -1 },
+                    { 'x': -3, 'y': -1 }
+                ]
+            }]
+        }]
+    }
+    requests.post('http://' + config.ip + ':8088/setOrder', json.dumps(data))
+    time.sleep(2)
+    goto_order('AP19', 'sim_02')
+    goto_order('AP21', 'sim_03')
+
+def mapf_adjust_info_region_self_position():
+    # 最基本的凸多边形调整范围原地任务: 调整范围内存在机器人, 我不能执行原地调整任务
+    # 分为两种: 1. 范围内的机器人是运动的(cur_func); 2. 范围内的机器人是静止的
+    terminate_all_order()
+    set_dispatchable_status(['sim_04', 'sim_05'], DispatchStatus.ignore)
+    modify_param({'RDSDispatcher': {
+        'DelayFinishTime': 0,
+    }})
+    move_robot('sim_01', 'AP17')
+    move_robot('sim_02', 'LM2')
+    move_robot('sim_03', 'LM8')
+    time.sleep(2)
+    goto_order('AP17', 'sim_01')
+    time.sleep(5)
+    goto_order('AP19', 'sim_02')
+    time.sleep(5)
+    data = {
+        'id': get_random_str(),
+        'vehicle': 'sim_01',
+        'complete': True,
+        'blocks': [{
+            'blockId': get_random_str(),
+            'location': 'AP17',
+            'adjustInfo': [{
+                'points': 'AP17',
+                'region': [
+                    { 'x': -3, 'y': +1 },
+                    { 'x': +1, 'y': +1 },
+                    { 'x': +1, 'y': -1 },
+                    { 'x': -3, 'y': -1 }
+                ]
+            }]
+        }]
+    }
+    requests.post('http://' + config.ip + ':8088/setOrder', json.dumps(data))
+
+def mapf_adjust_info_region_self_position_2():
+    # 最基本的凸多边形调整范围原地任务: 调整范围内存在机器人, 我不能执行原地调整任务
+    # 分为两种: 1. 范围内的机器人是运动的; 2. 范围内的机器人是静止的(cur_func)
+    terminate_all_order()
+    set_dispatchable_status(['sim_04', 'sim_05'], DispatchStatus.ignore)
+    modify_param({'RDSDispatcher': {
+        'DelayFinishTime': 0,
+    }})
+    move_robot('sim_01', 'AP17')
+    move_robot('sim_02', 'AP18')
+    move_robot('sim_03', 'LM8')
+    time.sleep(2)
+    goto_order('AP17', 'sim_01')
+    goto_order('AP18', 'sim_02')
+    time.sleep(10)
+    data = {
+        'id': get_random_str(),
+        'vehicle': 'sim_01',
+        'complete': True,
+        'blocks': [{
+            'blockId': get_random_str(),
+            'location': 'AP17',
+            'adjustInfo': [{
+                'points': 'AP17',
+                'region': [
+                    { 'x': -3, 'y': +1 },
+                    { 'x': +1, 'y': +1 },
+                    { 'x': +1, 'y': -3 },
+                    { 'x': -3, 'y': -3 }
+                ]
+            }]
+        }]
+    }
+    requests.post('http://' + config.ip + ':8088/setOrder', json.dumps(data))
+
+def mapf_adjust_info_region_real():
+    # 奥士康实际生产测试有问题
+    terminate_all_order()
+    modify_param({'RDSDispatcher': {
+        'DelayFinishTime': 0,
+    }})
+    move_robot('F3-AGV-105', 'LM2107')
+    move_robot('F3-AGV-129', 'LM2965')
+    time.sleep(2)
+    time.sleep(10)
+    data = {
+        'id': get_random_str(),
+        'vehicle': 'F3-AGV-105',
+        'complete': True,
+        'blocks': [{
+            'blockId': get_random_str(),
+            'location': 'SMIAPL80B0018',
+            'adjustInfo': [{
+                'points': 'SMIAPL80B0018',
+                'region': [
+                    { 'x': -1, 'y': 1.5 },
+                    { 'x': 0.5, 'y': 0.5 },
+                    { 'x': 0.5, 'y': -0.5 },
+                    { 'x': -1, 'y': -1.5 }
+                ]
+            }]
+        }]
+    }
+    requests.post('http://' + config.ip + ':8088/setOrder', json.dumps(data))
+    goto_order('AP3009', 'F3-AGV-129')
+
+def order_issue_pool_11247_near_bin_deadlock():
+    # forkChanel 引发死锁
+    order_template('AMB-02', 'LM1007', 'LM995', 'AMB-01', 'LM993', 'LM1006')
+
+def order_issue_pool_11438():
+    move_robot('CDD14-2', 'LM61')
+    time.sleep(2)
+    goto_order('AP98', recognize=True)
+
+def order_issue_pool_11147_pro():
+    # 多车死锁
+    terminate_all_order()
+    move_robot('AMB-02', 'LM23', -1.57)
+    move_robot('AMB-04', 'LM115', 0)
+    move_robot('AMB-05', 'LM31', 0)
+    move_robot('AMB-06', 'LM127', -1.57)
+    move_robot('AMB-07', 'LM25', 1.57)
+    time.sleep(2)
+    goto_order('AP63', 'AMB-02')
+    goto_order('AP16', 'AMB-04')
+    goto_order('AP63', 'AMB-05')
+    goto_order('AP12', 'AMB-06')
+    goto_order('PP106', 'AMB-07')
+
+def order_issue_pool_11540():
+    # 释放前置点资源慢
+    terminate_all_order()
+    move_robot('SCA-A09', 'LM34', 1.57)
+    move_robot('SCA-A06', 'LM438', 1.57)
+    time.sleep(2)
+    set_operation_time('SCA-A09', 'JackLoad', 10)
+    time.sleep(2)
+    goto_order('AP12', 'SCA-A09', operation='JackLoad', recognize=True)
+    goto_order('AP11', 'SCA-A06')
+
+def order_issue_pool_11455():
+    # 检测不出和 waiting 状态的机器人路线冲突
+    terminate_all_order()
+    time.sleep(2)
+    move_robot('SD-F3-02', 'LM12419', -1.57)
+    move_robot('SD-F3-03', 'AP12115')
+    move_robot('SD-F3-04', 'AP12009')
+    time.sleep(2)
+    goto_order('AP12030', 'SD-F3-03', complete=False)
+    goto_order('AP12032', 'SD-F3-04', complete=False)
+    time.sleep(20)
+    goto_order('AP12028', 'SD-F3-02')
+
+def order_issue_pool_6089():
+    terminate_all_order()
+    move_robot('OPK-121', 'LM5218')
+    move_robot('OPK-124', 'LM5216')
+    time.sleep(2)
+    goto_order('LM6814', 'OPK-121')
+    goto_order('LM6800', 'OPK-124')
+
+def order_issue_pool_11363():
+    terminate_all_order()
+    time.sleep(2)
+    move_robot('SCA-B02', 'LM386', 0)
+    move_robot('SCA-B08', 'LM441', 3.14)
+    time.sleep(2)
+    goto_order('AP370', 'SCA-B08')
+    goto_order('AP258', 'SCA-B02')
+
+def ao_shi_kang_0305():
+    terminate_all_order()
+    time.sleep(2)
+    move_robot('SD-F3-02', 'AP12031')
+    move_robot('SD-F3-03', 'AP12117')
+    time.sleep(2)
+    goto_order('AP12032', 'SD-F3-03', complete=False)
+    time.sleep(10)
+    goto_order('AP12015', 'SD-F3-02')
+
+def order_issue_pool_10355():
+    # 大连佳林 多车小区域规划效果差
+    terminate_all_order()
+    time.sleep(2)
+    move_robot('JLAMR-01', 'PP1003')
+    move_robot('JLAMR-02', 'PP1002')
+    move_robot('JLAMR-03', 'PP18002')
+    move_robot('JLAMR-04', 'PP1018')
+    move_robot('JLAMR-12', 'PP1022')
+    move_robot('JLAMR-15', 'LM11201')
+    time.sleep(2)
+    unlock_vehicles = ['JLAMR-01', 'JLAMR-02', 'JLAMR-03', 'JLAMR-04', 'JLAMR-12', 'JLAMR-15']
+    set_nickname(unlock_vehicles, "dingyubo")
+    time.sleep(2)
+    move_robot('JLAMR-05','AP117')
+    move_robot('JLAMR-08','LM10626')
+    move_robot('JLAMR-09','LM10661')
+    move_robot('JLAMR-10','AP97')
+    move_robot('JLAMR-11','LM10234')
+    time.sleep(2)
+    set_goods_shape('JLAMR-05', -0.54, -0.73, 0.54, 0.73)
+    set_goods_shape('JLAMR-08', -0.61, -0.83, 0.61, 0.83)
+    set_goods_shape('JLAMR-11', -0.60, -0.83, 0.60, 0.83)
+    time.sleep(2)
+    goto_order('AP122', 'JLAMR-05',)
+    goto_order('AP116', 'JLAMR-08',)
+    goto_order('AP60', 'JLAMR-09',)
+    goto_order('AP157', 'JLAMR-10',)
+    goto_order('AP140', 'JLAMR-11',)
+
+def order_issue_pool_11678():
+    # 两车从不同楼层去同一楼层不同目标点
+    terminate_all_order()
+    time.sleep(2)
+    move_robot('SWW3B31027', 'LM4540')
+    move_robot('SWW39J1021', 'LM1041')
+    time.sleep(2)
+    goto_order('AP1580', 'SWW3B31027')
+    goto_order('AP271', 'SWW39J1021')
+
+def order_issue_pool_11630():
+    # api 调用导致调度崩溃, 无法复现
+    block_names = [f'MutexRegion{i:03d}' for i in range(1, 20)]
+    while True:
+        for block in block_names:
+            print(block, get_robots_in_block(block))
+            time.sleep(0.2)
+        time.sleep(0.2)
+
+def order_issue_pool_11619():
+    terminate_all_order()
+    time.sleep(2)
+    vehicles = ['CTU-2F-2', 'CTU-2F-3', 'CTU-2F-4']
+    init_pos = ['AP21233',  'AP21237',  'LM115']
+    init_ang = [0, 0, -1.57]
+    targets  = ['Z-03-02-02', 'Z-03-02-01', 'Z-02-02-01']
+    complete = [True, False, True]
+    for v, p, a in zip(vehicles, init_pos, init_ang):
+        move_robot(v, p, a)
+    time.sleep(2)
+    for v, t, c in zip(vehicles, targets, complete):
+        goto_order(t, v, complete=c)
+
+def set_bin_goods_shape():
+    data = {
+        'Loc-01': [-0.5, -0.2, 0.5, 0.2],
+        'Loc-02': [-0.5, -0.25, 0.5, 0.2],
+        'Loc-03': [-0.5, -0.2, 0.55, 0.2],
+        'Loc-04': [-0.5, -0.2, 0.5, 0.25]
+    }
+    requests.post("http://" + config.ip + ":8088/updateSimRobotState", json.dumps(data))
+
+def order_issue_pool_11951():
+    terminate_all_order()
+    time.sleep(2)
+    move_robot('AGV-F2-78', 'AP22125')
+    move_robot('AGV-F2-85', 'AP20870')
+    time.sleep(2)
+    goto_order('AP22013', 'AGV-F2-78')
+    goto_order('AP21971', 'AGV-F2-85')
+
+def simulation_fork_height():
+    while True:
+        print(get_fork_height('sim_01'))
+        time.sleep(0.1)
+
+def bin_occupy():
+    db_path = r'C:\.SeerRobotics\rdscore\resources\db\bin-monitor.sqlite'
+    add = ("INSERT INTO binmonitor (binname, binstatus, holder, update_time, connection_status, binarea, "
+                "goodsid, content) VALUES ('Loc-03', 1, 1, '', 1, '', '', '')")
+    execute_sqlite3_db(db_path, add)
+    delete = "DELETE FROM binmonitor WHERE binname = 'Loc-01'"
+    execute_sqlite3_db(db_path, delete)
+
+def order_issue_pool_12121():
+    terminate_all_order()
+    time.sleep(2)
+    order_template('QY-01', 'LM530', 'LM8', 'QY-02', 'LM179', 'PP523')
+
+def well_wit_583():
+    terminate_all_order()
+    time.sleep(2)
+    move_robot('AMR-HL-06', 'LM6007')
+    time.sleep(2)
+    goto_order('LM6018')
+    time.sleep(7)
+    terminate_order(['AMR-HL-06'])
+    goto_order('LM6018')
+
+def order_issue_pool_12157():
+    terminate_all_order()
+    time.sleep(2)
+    move_robot('sim_01', 'LM131')
+    time.sleep(2)
+    set_goods_shape('sim_01', -0.2, -0.2, 0.2, 0.2)
+    time.sleep(2)
+    goto_order('LM119', operation='JackUnload')
+    time.sleep(2)
+    goto_order('AP130')
+
+def order_issue_pool_12370():
+    terminate_all_order()
+    time.sleep(2)
+    move_robot('316001', 'LM1890', 1.57)
+    move_robot('316002', 'LM1133', 0)
+    time.sleep(2)
+    set_goods_shape('316001', -0.2, -0.2, 0.2, 0.2)
+    time.sleep(2)
+    goto_order('PP1924', '316001')
+    time.sleep(2)
+    goto_order('AP543', '316002')
+
+def order_issue_pool_12393():
+    terminate_all_order()
+    time.sleep(2)
+    move_robot('AGF-B', 'LM1011', 0)
+    oid = get_random_str()
+    goto_order('20101', 'AGF-B', order_id=oid, complete=False)
+    time.sleep(20)
+    add_block('20102', oid, True)
+
+def order_issue_pool_12441():
+    terminate_all_order()
+    time.sleep(2)
+    order_template('Number1', 'LM452', 'LM422', 'Number3', 'LM7', 'LM449')
+
+def tianjin():
+    terminate_all_order()
+    time.sleep(2)
+    move_robot('316001', 'LM257')
+    move_robot('316002', 'LM1447')
+    time.sleep(2)
+    set_goods_shape('316001', -0.335, -0.7, 0.335, 0.7, 1.57)
+    set_goods_shape('316002', -0.335, -0.7, 0.335, 0.7, 1.57)
+    set_goods_shape('316001', -0.335, -0.7, 0.335, 0.7, 1.57, autoLoad=True)
+    set_goods_shape('316002', -0.335, -0.7, 0.335, 0.7, 1.57, autoLoad=True)
+    time.sleep(2)
+    goto_order('AP542', '316001', operation='JackUnload')
+    goto_order('AP543', '316002', operation='JackUnload')
+    time.sleep(2)
+    goto_order('AP548', '316001', operation='JackLoad')
+    goto_order('AP549', '316002', operation='JackLoad')
+
+def custom_mapf_test():
+    agvs = set_target_list(1, 10, title='SCA-A', fill=True)
+    move_robot(agvs[0], 'LM158')
+    move_robot(agvs[1], 'LM159')
+    move_robot(agvs[2], 'LM160')
+    move_robot(agvs[3], 'LM161')
+    move_robot(agvs[4], 'LM570')
+    move_robot(agvs[5], 'AP254')
+    move_robot(agvs[6], 'LM529')
+    move_robot(agvs[7], 'LM205')
+    move_robot(agvs[8], 'AP258')
+    move_robot(agvs[9], 'LM527')
+    time.sleep(2)
+    data = [
+        { 'r_name': agvs[0], 'target': 255, 'type': 0 },  # 158->255
+        { 'r_name': agvs[4], 'target': 238, 'type': 1 },  # 570->238
+        { 'r_name': agvs[5], 'target': 238, 'type': 1 },  # 254->238
+        { 'r_name': agvs[6], 'target': 238, 'type': 1 },  # 529->238
+        { 'r_name': agvs[7], 'target': 238, 'type': 1 },  # 205->238
+        { 'r_name': agvs[8], 'target': 238, 'type': 1 },  # 258->238
+        # { 'r_name': agvs[9], 'target': 238, 'type': 1 },  # 527->238
+    ]
+    print(json.dumps(get_custom_mapf_result(data), indent=2))
+
+def order_issue_pool_12378():
+    terminate_all_order()
+    time.sleep(2)
+    move_robot('AGV02', 'LM607')
+    move_robot('AGV14', 'LM719')
+    time.sleep(2)
+    goto_order('AP600', 'AGV02')
+    goto_order('LM229', 'AGV14')
+
+def join_order():
+    data1 = {
+        'id': 'seer-test-001',
+        'complete': True,
+        'group': 'RobotGroup-1.2T',
+        'blocks': [
+            {
+                'blockId': get_random_str(),
+                'location': 'WH003',
+                'binTask': 'Load'
+            },
+            {
+                'blockId': get_random_str(),
+                'location': 'PL_FG_DMF19_001',
+                'binTask': 'Unload'
+            }
+        ]
+    }
+    data2 = {
+        'id': 'seer-test-002',
+        'complete': False,
+        'group': 'RobotGroup-1.2T',
+        'blocks': [
+            {
+                'blockId': get_random_str(),
+                'location': 'PL_FG_DMF19_002',
+                'binTask': 'Load'
+            },
+            {
+                'blockId': get_random_str(),
+                'location': 'LM336',
+                'operation': 'wait'
+            }
+        ]
+    }
+    data3 = {
+        'id': 'seer-test-003',
+        'complete': False,
+        'group': 'RobotGroup-1.2T',
+        'blocks': [
+            {
+                'blockId': get_random_str(),
+                'location': 'PL_PKG_DMF19_001',
+                'binTask': 'Load'
+            },
+            {
+                'blockId': get_random_str(),
+                'location': 'LM336',
+                'operation': 'wait'
+            }
+        ]
+    }
+    requests.post("http://" + config.ip + ":8088/setOrder", json.dumps(data1))
+    time.sleep(5)
+    requests.post("http://" + config.ip + ":8088/setOrder", json.dumps(data2))
+    time.sleep(5)
+    requests.post("http://" + config.ip + ":8088/setOrder", json.dumps(data3))
+
+def join_order_2():
+    data1 = {
+        'id': 'seer-test-03',
+        'complete': True,
+        'blocks': [
+            {
+                'blockId': get_random_str(),
+                'location': 'PL_FG_DMF19_001',
+                'binTask': 'Load'
+            },
+            {
+                'blockId': get_random_str(),
+                'location': 'WH001',
+                'binTask': 'Unload'
+            }
+        ]
+    }
+    data2 = {
+        'id': 'seer-test-04',
+        'complete': True,
+        'group': 'RobotGroup-1.2T',
+        'blocks': [
+            {
+                'blockId': get_random_str(),
+                'location': 'WH002',
+                'binTask': 'Load'
+            },
+            {
+                'blockId': get_random_str(),
+                'location': 'PL_FG_DMF19_002',
+                'binTask': 'Unload'
+            }
+        ]
+    }
+    requests.post("http://" + config.ip + ":8088/setOrder", json.dumps(data1))
+    time.sleep(5)
+    requests.post("http://" + config.ip + ":8088/setOrder", json.dumps(data2))
+
+def mapf_search_conflict():
+    terminate_all_order()
+    time.sleep(2)
+    move_robot('316001', 'LM943')
+    move_robot('316002', 'LM1749')
+    time.sleep(2)
+    set_goods_shape('316001', -0.5, -0.5, 0.5, 0.5)
+    time.sleep(2)
+    goto_order('AP488', '316001')
+    goto_order('AP304', '316002')
+
+def order_issue_pool_12820():
+    terminate_all_order()
+    time.sleep(2)
+    move_robot('YJ-2F-Fork01', 'LM1600')
+    move_robot('YJ-2F-Fork02', 'LM2031')
+    move_robot('YJ-2F-Fork03', 'LM4130')
+    move_robot('YJ-2F-Fork04', 'LM3743')
+    time.sleep(2)
+    goto_order('AP606', 'YJ-2F-Fork02')
+    goto_order('LM1600', 'YJ-2F-Fork03')
+    goto_order('LM1600', 'YJ-2F-Fork04')
+    time.sleep(2)
+    goto_order('AP605', 'YJ-2F-Fork01')
+
+def cate():
+    terminate_all_order()
+    time.sleep(2)
+    order_template('Fork-10', 'LM2674', 'AP2189', 'Fork-03', 'LM2501', 'AP2188')
+
+def tianjin_schedule():
+    move_robot('sim_01', 'LM131')
+    time.sleep(2)
+    set_goods_shape('sim_01', -0.2, -0.2, 0.2, 0.2)
+    time.sleep(2)
+    data1 = {
+        'id': 'seer-dyb-01',
+        'complete': True,
+        'blocks': [
+            {
+                'blockId': get_random_str(),
+                'location': 'Loc-8-1',
+                'binTask': 'QuickUnload'
+            }
+        ]
+    }
+    data2 = {
+        'id': 'seer-dyb-02',
+        'complete': True,
+        'blocks': [
+            {
+                'blockId': get_random_str(),
+                'location': 'Loc-7-1',
+                'binTask': 'QuickLoad'
+            }
+        ]
+    }
+    requests.post("http://" + config.ip + ":8088/setOrder", json.dumps(data1))
+    time.sleep(5)
+    requests.post("http://" + config.ip + ":8088/setOrder", json.dumps(data2))
+
+def ioi():
+    data1 = {
+        'id': '11111',
+        'complete': False,
+        'keyRoute': 'AP130'
+    }
+    requests.post("http://" + config.ip + ":8088/setOrder", json.dumps(data1))
+    data2 = {
+        'id': '11111',
+        'complete': True,
+        'blocks': [{
+            'blockId': get_random_str(),
+            'location': 'AP130',
+            'operation': 'JackLoad'
+        }]
+    }
+    time.sleep(10)
+    requests.post("http://" + config.ip + ":8088/addBlocks", json.dumps(data2))
+
+def adam_detour():
+    move_robot('RIL-H-9015', 'AP10050', 1.57)
+    move_robot('RIL-H-9019', 'AP10051', 1.57)
+    time.sleep(2)
+
+
 if __name__ == '__main__':
-    query_frequency()
+    """
+    README
+    1. 严格限制测试函数编写规范, 方便后续的整理迁移
+    2. 函数名用对应 coding 命名, 如 robokit_100, order_issue_pool_100, 这样方便以后回溯问题下载日志等
+    3. 如果没有对应 coding, 需要在函数中注释测试使用的场景
+    4. 函数注释要写明测试点, 为追求简洁, 大部分测试函数不写断言, 只依赖人观察合理性, 所以需写明观察点, 必要时需要画出简易拓扑图
+    5. 尽可能采用封装好的函数模板, 避免写过长的逻辑; 如最简单的两台车初始化位置并发单就采用函数 order_template
+    """
+    adam_detour()

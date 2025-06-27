@@ -3,7 +3,7 @@ import re
 import glob
 import pandas as pd
 
-config_log_path = r'C:\.SeerRobotics\rdscore\diagnosis\log'
+config_log_path = r'D:\download\RDSCore-Debug-20241112140401-20241112140718\log'
 
 
 def rds_log_time_analyze(log_path: str = None):
@@ -62,6 +62,10 @@ def rds_log_time_analyze(log_path: str = None):
         print(f"最近10个周期的耗时: {time_cost_columns.tail(10).values}")
     else:
         print("No lines containing 'TCost' found in the file")
+
+
+def draw(log_path: str = None):
+    pass
 
 
 if __name__ == '__main__':

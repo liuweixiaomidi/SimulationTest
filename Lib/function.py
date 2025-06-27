@@ -9,6 +9,7 @@ import uuid
 import random
 import socket
 import struct
+import sqlite3
 import datetime
 import requests
 import Lib.config
@@ -450,7 +451,7 @@ def cancel_robot_blocked(robot: str, ip: str = None):
 
 def set_robot_error(robot: str, error: any, ip: str = None):
     """
-    将机器人设置为阻挡状态
+    设置机器人报错码
     :param error: 报错信息
     :param ip: 服务器 ip，缺省则采用 Lib.config.py 里的 ip
     :param robot: 机器人名称
@@ -467,7 +468,7 @@ def set_robot_error(robot: str, error: any, ip: str = None):
 
 def set_robot_emergency(robot: str, emergency: bool = True, ip: str = None):
     """
-    将机器人设置为阻挡状态
+    将机器人设置为急停状态
     :param emergency: 是否急停, 缺省为是
     :param ip: 服务器 ip，缺省则采用 Lib.config.py 里的 ip
     :param robot: 机器人名称
@@ -676,6 +677,23 @@ def get_robot_finished_path(robot: str, ip: str = None):
     for r in status['report']:
         if r['vehicle_id'] == robot:
             result: list = r.get('finished_path')
+            break
+    return result
+
+def get_robot_unfinished_path(robot: str, ip: str = None):
+    """
+    获取机器人经过的路线
+    :param robot: 机器人名称
+    :param ip: 服务器 ip, 缺省则采用 Lib.config 中的 ip
+    :return: list[str]
+    """
+    result = []
+    if ip is None:
+        ip = Lib.config.ip
+    status = requests.get('http://' + ip + ':8088/robotsStatus').json()
+    for r in status['report']:
+        if r['vehicle_id'] == robot:
+            result: list = r.get('unfinished_path')
             break
     return result
 
@@ -1183,13 +1201,13 @@ def draw_speed_graph():
     draw_graph(speeds, 0.5, 'time', 'speed', 'agv speed graph')
 
 
-def get_fork_height(name: str):
+def get_fork_height(name: str, ip: str):
     """
     获取叉车货叉高度
     :param name: 机器人名称
     :return:
     """
-    robots_status = requests.get('http://127.0.0.1:8088/robotsStatus').json()
+    robots_status = requests.get('http://' + ip + ':8088/robotsStatus').json()
     if 'report' in robots_status:
         report = robots_status['report']
         for r in report:
@@ -1201,6 +1219,26 @@ def get_fork_height(name: str):
                         fork = rbk_report['fork']
                         if 'fork_height' in fork:
                             return fork['fork_height']
+    return -1
+
+def get_jack_height(name: str, ip: str):
+    """
+    获取叉车货叉高度
+    :param name: 机器人名称
+    :return:
+    """
+    robots_status = requests.get('http://' + ip + ':8088/robotsStatus').json()
+    if 'report' in robots_status:
+        report = robots_status['report']
+        for r in report:
+            if 'vehicle_id' in r and r['vehicle_id'] == name:
+                robot_statue = r
+                if 'rbk_report' in robot_statue:
+                    rbk_report = robot_statue['rbk_report']
+                    if 'jack' in rbk_report:
+                        fork = rbk_report['jack']
+                        if 'jack_height' in fork:
+                            return fork['jack_height']
     return -1
 
 
@@ -1320,7 +1358,7 @@ def terminate_order(robot: list[str] = None, order_id: str = None, ip: str = Non
     elif order_id is not None:
         requests.post('http://' + ip + ':8088/terminate', data=json.dumps({'id': order_id}))
     else:
-        requests.post('http://' + ip + ':8088/terminate', data=json.dumps({'vehicles': robot}))
+        requests.post('http://' + ip + ':8088/terminate', data=json.dumps({'vehicles': robot, "disableVehicle": False}))
 
 
 def get_sweep_order_state(oid: str, ip: str = None):
@@ -1605,11 +1643,14 @@ def order_template(r1: str, p1: str, t1: str, r2: str, p2: str, t2: str):
     :param t2: 机器人 2 目标点
     :return:
     """
-    move_robot(r1, p1)
-    move_robot(r2, p2)
+    terminate_all_order()
+    time.sleep(1)
+    move_robot(r1, p1, -1.57)
+    move_robot(r2, p2, -1.57)
     time.sleep(2)
     goto_order(t1, r1)
-    # goto_order(t2, r2)
+    time.sleep(2)
+    goto_order(t2, r2)
 
 
 def order_template_complex(*args):
@@ -1690,7 +1731,8 @@ def set_operation_time(vehicle: str, operation: Union[str, list], t: Union[float
             }
         case _:
             raise TypeError('operation 参数必须为 str 或 list 类型')
-    requests.post('http://' + ip + ':8088/updateSimRobotState', json.dumps(data))
+    rep = requests.post('http://' + ip + ':8088/updateSimRobotState', json.dumps(data)).json()
+    print(rep)
 
 
 def set_reach_deviation(vehicles: list[str], deviation: float, ip: str = None):
@@ -1811,6 +1853,90 @@ def get_robot_auto_order_status(vehicles: Union[str, list], condition: AutoOrder
     result = requests.post('http://' + ip + ':8088/getRobotAutoOrderStatus', json.dumps(data)).json()
     return result
 
+def check_mapf_collision(mp05NT_log: str, ip: str=config.ip):
+    """
+    [384|mp05NT|SCA-A09|SCA-A03|340|-3.139260|360|3.141593|293|-3.141593|367|-3.141593]
+    :return: bool
+    """
+    log_data = mp05NT_log.strip('[]').split('|')
+    data = {
+        "v0": [
+            log_data[2],
+            int(log_data[4]),
+            int(log_data[6]),
+            math.degrees(float(log_data[5])),
+            math.degrees(float(log_data[7])),
+        ],
+        "v1": [
+            log_data[3],
+            int(log_data[8]),
+            int(log_data[10]),
+            math.degrees(float(log_data[9])),
+            math.degrees(float(log_data[11]))
+        ]
+    }
+    response = requests.post('http://' + ip + ':8088/testCollisionService', json.dumps(data)).json()
+    print(response)
+    return bool(response['value'])
+
+def set_nickname(vehicles: list[str], nickname: str, ip: str = None):
+    """
+    设置机器人控制权所有者名称, 等价于抢占机器人控制权
+    :param vehicles: 机器人列表
+    :param nickname: 控制权所有者名称
+    :param ip: 服务器 ip, 缺省采用 Lib.config.py 里的 ip
+    :return: 无
+    """
+    if ip is None:
+        ip = config.ip
+    for vehicle in vehicles:
+        data = {
+            'vehicle_id': vehicle,
+            'nickname': nickname
+        }
+        requests.post("http://" + ip + ":8088/updateSimRobotState", json.dumps(data))
+        time.sleep(0.3)
+
+def get_robots_in_block(block_name: str, ip: str=config.ip):
+    """
+    获取指定互斥区内的机器人名称
+    :param block_name: 互斥区名称
+    :param ip: 服务器 ip
+    :return: list[vehicle_name]
+    """
+    return requests.get("http://" + ip + f":8088/getRobotsInBlock/{block_name}").json()
+
+def execute_sqlite3_db(db_path: str, language: str):
+    """
+    在 sqlite3 数据库执行一条 SQL 语句
+    :param db_path: 数据库路径
+    :param language: 语句
+    :return:
+    """
+    if not os.path.exists(db_path):
+        print(f'path not exist: {db_path}')
+        return
+    connect = sqlite3.connect(db_path)
+    cursor = connect.cursor()
+    cursor.execute(language)
+    connect.commit()
+    cursor.close()
+    connect.close()
+
+def get_custom_mapf_result(data: list[dict], ip: str=config.ip):
+    final_data = { 'data': [] }
+    for dic in data:
+        single_data = {'r_name': dic['r_name'], 'target': dic['target'], 'type': dic['type']}
+        final_data['data'].append(single_data)
+    res = requests.post("http://" + ip + ":8088/testCustomMAPF", json.dumps(final_data)).json()
+    return res
+
 if __name__ == '__main__':
-    time_consume(60*(60*0+40), 0, 7)
-    # terminate_all_order()
+    time_consume(60*(60*2+0), 0, 10)
+    # move_robot_by_xy('AMB-01', 21.686, 0.51)
+    # set_robot_angle('AMB-06', math.radians(91.27217676434014))
+    # move_robot_by_edge('sim_01', 'LM168', 'LM169', 0.9, 0)
+    # goto_order('AP2270', 'SWW4673006')
+    # set_robot_angle('Fork-01', math.radians(91.90243033898406))
+    # move_robot('Fork-93', 'LM353294', 0)
+    # set_operation_time('sim_01', 'ForkLoad', 5)
